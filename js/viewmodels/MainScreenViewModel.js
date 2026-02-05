@@ -47,6 +47,12 @@ export class MainScreenViewModel {
     this.showProofMethodModal = false;
     this.selectedProofMethod = "";
 
+    // Escrow waiting state
+    this.isEscrowWaiting = false;
+    this.escrowWaitingWorkout = null;
+    this.escrowWaitingResult = null;
+    this.escrowIconSuccess = false; // Flag to show green success state before fade out
+
     // Level up celebration state
     this.showLevelUp = false;
     this.newTierName = "";
@@ -346,55 +352,46 @@ export class MainScreenViewModel {
         result = await this._progressionService.addWorkoutProgress(workout);
       }
 
-      // Handle proof method (stub implementations)
+      // Special handling for Escrow: show waiting indicator instead of immediately processing
       if (this.selectedProofMethod === ProofMethodType.ESCROW) {
-        await this._proofService.initiateEscrowProof(workout);
-      } else if (this.selectedProofMethod === ProofMethodType.VIDEO) {
+        this._logger.log("Escrow proof initiated, showing waiting indicator");
+        
+        // Store workout and result for later processing
+        this.escrowWaitingWorkout = workout;
+        this.escrowWaitingResult = result;
+        
+        // Show the waiting icon and start the simulated waiting period
+        this.isEscrowWaiting = true;
+        this.escrowIconSuccess = false;
+        this.showProofMethodModal = false;
+        
+        // Simulate 8 second waiting period for guarantor verification
+        const ESCROW_WAIT_TIME = 8000;
+        await new Promise(resolve => setTimeout(resolve, ESCROW_WAIT_TIME));
+        
+        // Process the result after waiting period
+        this._processWorkoutResult(result, this.selectedMilestone, workout);
+        
+        // Change icon color to green to indicate success
+        this.escrowIconSuccess = true;
+        
+        // Wait for the fade-out animation to complete before hiding the icon
+        const FADE_OUT_DURATION = 500;
+        await new Promise(resolve => setTimeout(resolve, FADE_OUT_DURATION));
+        this.isEscrowWaiting = false;
+        this.escrowIconSuccess = false;
+        
+        return;
+
+      }
+
+      // Handle other proof methods normally
+      if (this.selectedProofMethod === ProofMethodType.VIDEO) {
         await this._proofService.initiateVideoProof(workout);
       }
 
-      if (result.success) {
-        // Get the milestone element to animate from
-        const milestoneElement = this._findMilestoneElement(
-          this.selectedMilestone,
-        );
-
-        if (this.isBenchmarkMilestone) {
-          this.successMessage = `Benchmark completed! ${result.milestoneProgress.name}: ${result.milestoneProgress.progress}/${result.milestoneProgress.required} benchmarks`;
-        } else {
-          this.successMessage = `Workout logged! ${result.milestoneProgress.name}: ${result.milestoneProgress.progress}/${result.milestoneProgress.required}`;
-        }
-
-        // Handle milestone completion
-        if (result.milestoneProgress.justCompleted) {
-          this.successMessage = `🎉 Milestone completed: ${result.milestoneProgress.name}!`;
-          // Trigger clap animation for milestone completion from the milestone
-          this.triggerClapRain(milestoneElement);
-        } else {
-          // Trigger dumbbell rain for regular workout from the milestone
-          this.triggerDumbbellRain(milestoneElement);
-        }
-
-        // Handle tier level up
-        if (result.tierLevelUp && result.tierLevelUp.leveledUp) {
-          this.newTierName = result.tierLevelUp.tierName;
-          this.athlete = await this._athleteRepository.getCurrentAthlete();
-          // Trigger fireworks after a short delay
-          setTimeout(() => {
-            this.triggerTierUpFireworks();
-          }, 500);
-          // Show level up overlay after animation starts
-          setTimeout(() => {
-            this.showLevelUp = true;
-          }, 1000);
-        }
-      } else {
-        this.errorMessage = result.error || "Failed to log workout";
-      }
-
-      // Refresh progress display
-      await this.refreshProgress();
-      await this.loadAvailableMilestones();
+      // Process result immediately for non-escrow methods
+      this._processWorkoutResult(result, this.selectedMilestone, workout);
 
       // Close modals on success
       if (result.success) {
@@ -412,6 +409,55 @@ export class MainScreenViewModel {
     } finally {
       this.isLoading = false;
     }
+  }
+
+  /**
+   * Process workout result and trigger animations/celebrations
+   * @private
+   */
+  _processWorkoutResult(result, selectedMilestone, workout) {
+    if (result.success) {
+      // Get the milestone element to animate from
+      const milestoneElement = this._findMilestoneElement(selectedMilestone);
+
+      if (this.isBenchmarkMilestone) {
+        this.successMessage = `Benchmark completed! ${result.milestoneProgress.name}: ${result.milestoneProgress.progress}/${result.milestoneProgress.required} benchmarks`;
+      } else {
+        this.successMessage = `Workout logged! ${result.milestoneProgress.name}: ${result.milestoneProgress.progress}/${result.milestoneProgress.required}`;
+      }
+
+      // Handle milestone completion
+      if (result.milestoneProgress.justCompleted) {
+        this.successMessage = `🎉 Milestone completed: ${result.milestoneProgress.name}!`;
+        // Trigger clap animation for milestone completion from the milestone
+        this.triggerClapRain(milestoneElement);
+      } else {
+        // Trigger dumbbell rain for regular workout from the milestone
+        this.triggerDumbbellRain(milestoneElement);
+      }
+
+      // Handle tier level up
+      if (result.tierLevelUp && result.tierLevelUp.leveledUp) {
+        this.newTierName = result.tierLevelUp.tierName;
+        this._athleteRepository.getCurrentAthlete().then(athlete => {
+          this.athlete = athlete;
+        });
+        // Trigger fireworks after a short delay
+        setTimeout(() => {
+          this.triggerTierUpFireworks();
+        }, 500);
+        // Show level up overlay after animation starts
+        setTimeout(() => {
+          this.showLevelUp = true;
+        }, 1000);
+      }
+    } else {
+      this.errorMessage = result.error || "Failed to log workout";
+    }
+
+    // Refresh progress display
+    this.refreshProgress();
+    this.loadAvailableMilestones();
   }
 
   /**

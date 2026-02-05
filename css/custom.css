@@ -352,3 +352,60 @@ button:active:not(:disabled) {
   animation: tier-level-up var(--md-sys-motion-duration-long)
     var(--md-sys-motion-easing-emphasized-decelerate);
 }
+/* ========== ESCROW WAITING ANIMATIONS ========== */
+
+/* Escrow waiting icon - pulse animation */
+@keyframes escrow-pulse {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.08);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes escrow-success-fade {
+  0% {
+    opacity: 1;
+    background-color: rgb(254, 243, 199); /* orange-200 */
+    color: rgb(217, 119, 6); /* orange-600 */
+  }
+  80% {
+    opacity: 0.3;
+    background-color: rgb(220, 252, 231); /* green-100 */
+    color: rgb(34, 197, 94); /* green-500 */
+  }
+  100% {
+    opacity: 0;
+    background-color: rgb(220, 252, 231); /* green-100 */
+    color: rgb(34, 197, 94); /* green-500 */
+  }
+}
+
+/* Apply pulse animation to escrow waiting icon */
+.escrow-waiting-icon {
+  animation: escrow-pulse 2s ease-in-out infinite;
+  transition-property: background-color, color;
+}
+
+/* Tooltip styling for the escrow icon */
+.escrow-waiting-icon:hover {
+  z-index: 50;
+}
+
+.escrow-waiting-icon:hover > div {
+  opacity: 1;
+}
+
+/* Active state for touch devices */
+@media (hover: none) and (pointer: coarse) {
+  .escrow-waiting-icon {
+    cursor: pointer;
+  }
+}
