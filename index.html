@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <meta name="theme-color" content="#6750A4" />
+    <meta
+      name="description"
+      content="Fitness Supreme - Gamified fitness tracking with proof-based progression"
+    />
+
+    <title>Fitness Supreme</title>
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json" />
+    <link rel="apple-touch-icon" href="img/icon-192.png" />
+
+    <!-- Material Design 3 Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/icon?family=Material+Icons"
+      rel="stylesheet"
+    />
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: "#6750A4",
+              "primary-container": "#EADDFF",
+              secondary: "#625B71",
+              "secondary-container": "#E8DEF8",
+              tertiary: "#7D5260",
+              "tertiary-container": "#FFD8E4",
+              surface: "#FEF7FF",
+              "surface-variant": "#E7E0EC",
+              "on-primary": "#FFFFFF",
+              "on-secondary": "#FFFFFF",
+              "on-surface": "#1D1B20",
+              "on-surface-variant": "#49454F",
+              outline: "#79747E",
+              "outline-variant": "#CAC4D0",
+              // Milestone colors
+              bronze: "#CD7F32",
+              silver: "#C0C0C0",
+              gold: "#FFD700",
+              platinum: "#E5E4E2",
+              diamond: "#B9F2FF",
+            },
+            fontFamily: {
+              sans: ["Roboto", "sans-serif"],
+            },
+          },
+        },
+      };
+    </script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/custom.css" />
+  </head>
+  <body class="bg-surface text-on-surface font-sans min-h-screen">
+    <!-- App Container -->
+    <div x-cloak x-data="app" class="min-h-screen">
+      <!-- Screen: Athlete Setup -->
+      <section
+        x-show="currentScreen === 'setup'"
+        x-transition:enter="transition ease-out duration-300"
+        x-transition:enter-start="opacity-0 translate-x-full"
+        x-transition:enter-end="opacity-100 translate-x-0"
+        x-transition:leave="transition ease-in duration-200"
+        x-transition:leave-start="opacity-100 translate-x-0"
+        x-transition:leave-end="opacity-0 -translate-x-full"
+        class="min-h-screen p-6 flex flex-col"
+      >
+        <h1 class="text-2xl font-bold text-primary mb-8 text-center">
+          Athlete Setup
+        </h1>
+
+        <!-- Name Input -->
+        <div class="mb-6">
+          <label class="block text-sm font-medium text-on-surface-variant mb-2"
+            >Your Name</label
+          >
+          <input
+            type="text"
+            x-model="athlete.name"
+            placeholder="Enter your name"
+            class="w-full px-4 py-3 rounded-xl bg-surface-variant text-on-surface border border-outline-variant focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+          />
+        </div>
+
+        <!-- Birthday Input -->
+        <div class="mb-6">
+          <label class="block text-sm font-medium text-on-surface-variant mb-2"
+            >Birthday</label
+          >
+          <input
+            type="date"
+            x-model="athlete.birthday"
+            class="w-full px-4 py-3 rounded-xl bg-surface-variant text-on-surface border border-outline-variant focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+          />
+        </div>
+
+        <!-- Gender Toggle -->
+        <div class="mb-6">
+          <label class="block text-sm font-medium text-on-surface-variant mb-3"
+            >Gender</label
+          >
+          <div class="grid grid-cols-2 gap-2">
+            <template x-for="gender in genderOptions" :key="gender.value">
+              <button
+                @click="athlete.gender = gender.value"
+                :class="athlete.gender === gender.value ? 'bg-primary text-on-primary' : 'bg-surface-variant text-on-surface-variant'"
+                class="px-4 py-3 rounded-xl font-medium transition-all duration-200 hover:shadow-md"
+                x-text="gender.label"
+              ></button>
+            </template>
+          </div>
+        </div>
+
+        <!-- Skin Tone Toggle -->
+        <div class="mb-8">
+          <label class="block text-sm font-medium text-on-surface-variant mb-3"
+            >Skin Tone</label
+          >
+          <div class="flex justify-center gap-3">
+            <template x-for="tone in skinToneOptions" :key="tone.value">
+              <button
+                @click="athlete.skinTone = tone.value"
+                :class="athlete.skinTone === tone.value ? 'ring-4 ring-primary scale-110' : 'ring-2 ring-outline-variant'"
+                :style="'background-color: ' + tone.color"
+                class="w-14 h-14 rounded-full transition-all duration-200 hover:scale-105"
+                :title="tone.label"
+              ></button>
+            </template>
+          </div>
+        </div>
+
+        <!-- Launch Button -->
+        <div class="mt-auto">
+          <button
+            @click="launchApp()"
+            :disabled="!isSetupValid"
+            :class="isSetupValid ? 'bg-primary hover:bg-primary/90' : 'bg-outline-variant cursor-not-allowed'"
+            class="w-full py-4 rounded-xl text-on-primary font-bold text-lg transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+          >
+            <span class="material-icons">rocket_launch</span>
+            Launch
+          </button>
+        </div>
+      </section>
+
+      <!-- Screen: Main -->
+      <section
+        x-show="currentScreen === 'main'"
+        x-transition:enter="transition ease-out duration-300"
+        x-transition:enter-start="opacity-0 scale-95"
+        x-transition:enter-end="opacity-100 scale-100"
+        x-transition:leave="transition ease-in duration-200"
+        x-transition:leave-start="opacity-100 scale-100"
+        x-transition:leave-end="opacity-0 scale-95"
+        class="min-h-screen flex flex-col relative overflow-hidden"
+      >
+        <!-- Background Avatar -->
+        <div
+          class="absolute inset-0 flex items-center justify-center opacity-20 pointer-events-none"
+        >
+          <img
+            :src="avatarImagePath"
+            :alt="'Tier ' + currentTier + ' avatar'"
+            class="w-full h-full object-cover"
+          />
+        </div>
+
+        <!-- Top Bar -->
+        <div class="relative z-10 flex justify-between items-center p-4">
+          <button
+            @click="navigateTo('setup')"
+            class="p-2 rounded-full bg-surface-variant/80 hover:bg-surface-variant transition-colors"
+          >
+            <span class="material-icons text-on-surface-variant">person</span>
+          </button>
+
+          <h2
+            class="text-lg font-bold text-primary"
+            x-text="'Tier ' + (currentTier + 1)"
+          ></h2>
+
+          <button
+            @click="navigateTo('history')"
+            class="p-2 rounded-full bg-surface-variant/80 hover:bg-surface-variant transition-colors"
+          >
+            <span class="material-icons text-on-surface-variant">history</span>
+          </button>
+        </div>
+
+        <!-- Milestone Medals -->
+        <div
+          class="relative z-10 flex-1 flex flex-col items-center justify-center px-6"
+        >
+          <div class="grid grid-cols-5 gap-3 mb-8">
+            <template
+              x-for="(milestone, index) in currentTierMilestones"
+              :key="index"
+            >
+              <div
+                class="milestone-medal flex flex-col items-center"
+                :class="milestone.completed ? 'opacity-100' : 'opacity-40'"
+              >
+                <div
+                  class="w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-all duration-500"
+                  :class="getMilestoneClass(milestone)"
+                >
+                  <span class="text-2xl" x-text="milestone.icon"></span>
+                </div>
+                <span
+                  class="text-xs mt-1 font-medium text-on-surface-variant"
+                  x-text="milestone.name"
+                ></span>
+                <span
+                  class="text-xs text-outline"
+                  x-text="milestone.progress + '/' + milestone.required"
+                ></span>
+              </div>
+            </template>
+          </div>
+
+          <!-- Tier Progress -->
+          <div class="w-full max-w-xs">
+            <div
+              class="flex justify-between text-sm text-on-surface-variant mb-2"
+            >
+              <span>Tier Progress</span>
+              <span x-text="completedMilestones + '/' + totalMilestones"></span>
+            </div>
+            <div class="h-3 bg-surface-variant rounded-full overflow-hidden">
+              <div
+                class="h-full bg-gradient-to-r from-primary to-tertiary rounded-full transition-all duration-500"
+                :style="'width: ' + tierProgressPercent + '%'"
+              ></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Add Workout FAB -->
+        <div class="relative z-10 p-6">
+          <div class="relative" x-data="{ showMenu: false }">
+            <!-- Submenu -->
+            <div
+              x-show="showMenu"
+              x-transition:enter="transition ease-out duration-200"
+              x-transition:enter-start="opacity-0 translate-y-4"
+              x-transition:enter-end="opacity-100 translate-y-0"
+              x-transition:leave="transition ease-in duration-150"
+              x-transition:leave-start="opacity-100 translate-y-0"
+              x-transition:leave-end="opacity-0 translate-y-4"
+              @click.outside="showMenu = false"
+              class="absolute bottom-full left-0 right-0 mb-4 bg-surface rounded-2xl shadow-xl border border-outline-variant overflow-hidden"
+            >
+              <button
+                @click="addWorkout('escrow'); showMenu = false"
+                class="w-full px-6 py-4 flex items-center gap-4 hover:bg-surface-variant transition-colors border-b border-outline-variant"
+              >
+                <span class="material-icons text-primary">handshake</span>
+                <div class="text-left">
+                  <div class="font-medium">Escrow</div>
+                  <div class="text-sm text-on-surface-variant">
+                    Post and notify guarantor
+                  </div>
+                </div>
+              </button>
+              <button
+                @click="addWorkout('video'); showMenu = false"
+                class="w-full px-6 py-4 flex items-center gap-4 hover:bg-surface-variant transition-colors border-b border-outline-variant"
+              >
+                <span class="material-icons text-primary">videocam</span>
+                <div class="text-left">
+                  <div class="font-medium">Video Proof</div>
+                  <div class="text-sm text-on-surface-variant">
+                    Record your workout
+                  </div>
+                </div>
+              </button>
+              <button
+                @click="addWorkout('record'); showMenu = false"
+                class="w-full px-6 py-4 flex items-center gap-4 hover:bg-surface-variant transition-colors"
+              >
+                <span class="material-icons text-primary">emoji_events</span>
+                <div class="text-left">
+                  <div class="font-medium">Off the Record</div>
+                  <div class="text-sm text-on-surface-variant">
+                    Post without proof
+                  </div>
+                </div>
+              </button>
+            </div>
+
+            <!-- FAB Button -->
+            <button
+              @click="showMenu = !showMenu"
+              class="w-full py-4 bg-primary hover:bg-primary/90 rounded-2xl shadow-xl text-on-primary font-bold text-lg flex items-center justify-center gap-2 transition-all duration-200"
+            >
+              <span
+                class="material-icons"
+                :class="showMenu ? 'rotate-45' : ''"
+                style="transition: transform 0.2s"
+                >add</span
+              >
+              Add Workout
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Screen: Workout History -->
+      <section
+        x-show="currentScreen === 'history'"
+        x-transition:enter="transition ease-out duration-300"
+        x-transition:enter-start="opacity-0 translate-x-full"
+        x-transition:enter-end="opacity-100 translate-x-0"
+        x-transition:leave="transition ease-in duration-200"
+        x-transition:leave-start="opacity-100 translate-x-0"
+        x-transition:leave-end="opacity-0 -translate-x-full"
+        class="min-h-screen flex flex-col"
+      >
+        <!-- Header -->
+        <div
+          class="flex items-center gap-4 p-4 border-b border-outline-variant"
+        >
+          <button
+            @click="navigateTo('main')"
+            class="p-2 rounded-full hover:bg-surface-variant transition-colors"
+          >
+            <span class="material-icons text-on-surface-variant"
+              >arrow_back</span
+            >
+          </button>
+          <h1 class="text-xl font-bold text-on-surface">Workout History</h1>
+        </div>
+
+        <!-- Workout List -->
+        <div class="flex-1 overflow-y-auto p-4">
+          <template x-if="workouts.length === 0">
+            <div
+              class="flex flex-col items-center justify-center h-64 text-on-surface-variant"
+            >
+              <span class="material-icons text-6xl mb-4 opacity-40"
+                >fitness_center</span
+              >
+              <p class="text-lg">No workouts yet</p>
+              <p class="text-sm">Start logging to see your history</p>
+            </div>
+          </template>
+
+          <template x-for="workout in workouts" :key="workout.id">
+            <div
+              class="bg-surface-variant/50 rounded-2xl p-4 mb-3 border border-outline-variant"
+            >
+              <div class="flex items-start justify-between">
+                <div>
+                  <div
+                    class="font-medium text-on-surface"
+                    x-text="workout.type"
+                  ></div>
+                  <div
+                    class="text-sm text-on-surface-variant"
+                    x-text="formatDate(workout.date)"
+                  ></div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span
+                    class="px-3 py-1 rounded-full text-xs font-medium"
+                    :class="getProofBadgeClass(workout.proofMethod)"
+                    x-text="getProofLabel(workout.proofMethod)"
+                  ></span>
+                </div>
+              </div>
+              <div
+                class="mt-2 flex items-center gap-2 text-sm text-on-surface-variant"
+              >
+                <span class="material-icons text-base">flag</span>
+                <span>Counts towards: </span>
+                <span
+                  class="font-medium"
+                  :class="'text-' + workout.milestone"
+                  x-text="workout.milestone"
+                ></span>
+              </div>
+            </div>
+          </template>
+        </div>
+      </section>
+    </div>
+
+    <!-- App Initialization (ES Module) -->
+    <script type="module">
+      // Import Alpine.js as a module (no auto-start)
+      import Alpine from "https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/module.esm.js";
+
+      // Import our app
+      import { registerAppData } from "./js/app.js";
+
+      // Make Alpine globally available
+      window.Alpine = Alpine;
+
+      // Register our data components BEFORE starting Alpine
+      registerAppData(Alpine);
+
+      // Now start Alpine
+      Alpine.start();
+
+      console.log("[f17n355] App initialized with Alpine.js");
+    </script>
+
+    <!-- Service Worker Registration -->
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker
+            .register("/sw.js")
+            .then((reg) => console.log("SW registered:", reg.scope))
+            .catch((err) => console.error("SW registration failed:", err));
+        });
+      }
+    </script>
+  </body>
+</html>
