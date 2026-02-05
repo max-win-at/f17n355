@@ -25,6 +25,9 @@ import { ProofMethod } from "./models/Workout.js";
 import { MilestoneType } from "./models/Milestone.js";
 import { getAllWorkoutTypes } from "./models/TierConfiguration.js";
 
+// Debug interface
+import { DebugInterface } from "./debug/DebugInterface.js";
+
 /**
  * Application container - manages dependency injection
  */
@@ -249,5 +252,11 @@ window.__f17n355 = {
   MilestoneType,
   getAllWorkoutTypes,
 };
+
+// Initialize debug interface
+const debugInterface = new DebugInterface(container);
+debugInterface.initialize().catch((error) => {
+  container.logger.error("Failed to initialize debug interface", error);
+});
 
 container.logger.log("App module loaded");

@@ -169,15 +169,24 @@ export class ProgressionService {
       totalWorkoutsNeeded: tier.getTotalWorkoutsNeeded(),
       totalWorkoutsCompleted: tier.getTotalWorkoutsCompleted(),
       progressPercent: tier.progressPercent,
-      milestones: tier.milestones.map((m) => ({
-        type: m.type,
-        name: m.name,
-        icon: m.icon,
-        progress: m.progress,
-        required: m.requiredWorkouts,
-        completed: m.isCompleted,
-        progressPercent: m.progressPercent,
-      })),
+      milestones: tier.milestones.map((m) => {
+        const progress = m.usesBenchmarks
+          ? m.benchmarksCompleted.length
+          : m.progress;
+        const required = m.usesBenchmarks
+          ? m.benchmarkWorkouts.length
+          : m.requiredWorkouts;
+
+        return {
+          type: m.type,
+          name: m.name,
+          icon: m.icon,
+          progress,
+          required,
+          completed: m.isCompleted,
+          progressPercent: m.progressPercent,
+        };
+      }),
     };
   }
 
@@ -201,15 +210,67 @@ export class ProgressionService {
 
     // Return incomplete milestones first, then completed ones
     return tier.milestones
-      .map((m) => ({
-        type: m.type,
-        name: m.name,
-        icon: m.icon,
-        progress: m.progress,
-        required: m.requiredWorkouts,
-        completed: m.isCompleted,
-        workoutTypes: m.workoutTypes,
-      }))
+      .map((m) => {
+        const progress = m.usesBenchmarks
+          ? m.benchmarksCompleted.length
+          : m.progress;
+        const required = m.usesBenchmarks
+          ? m.benchmarkWorkouts.length
+          : m.requiredWorkouts;
+
+        return {
+          type: m.type,
+          name: m.name,
+          icon: m.icon,
+          progress,
+          required,
+          completed: m.isCompleted,
+          workoutTypes: m.workoutTypes,
+          usesBenchmarks: m.usesBenchmarks,
+          benchmarks: m.benchmarkWorkouts,
+        };
+      })
       .sort((a, b) => a.completed - b.completed);
+  }
+
+  /**
+   * Complete a specific benchmark workout in a milestone
+   */
+  async completeBenchmark(workout, benchmarkIndex) {
+    const tier = this._tierConfig.getTierByLevel(workout.tier);
+    if (!tier) return { success: false, error: "Invalid tier" };
+
+    const milestone = tier.findMilestoneByType(workout.milestoneType);
+    if (!milestone) return { success: false, error: "Invalid milestone" };
+
+    if (!milestone.usesBenchmarks) {
+      return {
+        success: false,
+        error: "This milestone does not use benchmarks",
+      };
+    }
+    const wasCompleted = milestone.isCompleted;
+    milestone.completeBenchmark(benchmarkIndex);
+    const nowCompleted = milestone.isCompleted;
+
+    await this.saveProgress();
+
+    const result = {
+      success: true,
+      milestoneProgress: {
+        name: milestone.name,
+        progress: milestone.benchmarksCompleted.length,
+        required: milestone.benchmarkWorkouts.length,
+        justCompleted: !wasCompleted && nowCompleted,
+      },
+    };
+
+    // Check for tier level up
+    if (tier.isCompleted) {
+      const leveledUp = await this._checkTierLevelUp(workout.tier);
+      result.tierLevelUp = leveledUp;
+    }
+
+    return result;
   }
 }

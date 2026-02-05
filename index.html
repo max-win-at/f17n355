@@ -242,7 +242,9 @@
               class="flex justify-between text-sm text-on-surface-variant mb-2"
             >
               <span>Tier Progress</span>
-              <span x-text="totalWorkoutsCompleted + '/' + totalWorkoutsNeeded"></span>
+              <span
+                x-text="totalWorkoutsCompleted + '/' + totalWorkoutsNeeded"
+              ></span>
             </div>
             <div class="h-3 bg-surface-variant rounded-full overflow-hidden">
               <div
@@ -278,6 +280,7 @@
             x-transition:enter="transition ease-out duration-200"
             x-transition:enter-start="translate-y-full"
             x-transition:enter-end="translate-y-0"
+            id="workout-selection-modal-content"
             class="w-full bg-surface rounded-t-3xl p-6 max-h-[80vh] overflow-y-auto"
           >
             <!-- Header -->
@@ -287,7 +290,9 @@
                 @click="main.cancelWorkoutSelection()"
                 class="p-2 hover:bg-surface-variant rounded-full transition-colors"
               >
-                <span class="material-icons text-on-surface-variant">close</span>
+                <span class="material-icons text-on-surface-variant"
+                  >close</span
+                >
               </button>
             </div>
 
@@ -305,7 +310,7 @@
                 :key="milestone.type"
               >
                 <button
-                  @click="main.selectedMilestone = milestone.type; main.updateWorkoutTypes()"
+                  @click="main.selectMilestone(milestone.type)"
                   :class="main.selectedMilestone === milestone.type ? 'ring-2 ring-primary bg-primary-container' : 'bg-surface-variant'"
                   class="w-full p-4 rounded-2xl text-left transition-all border border-outline-variant hover:bg-primary-container/50"
                 >
@@ -313,7 +318,10 @@
                     <div class="flex items-center gap-3">
                       <span class="text-2xl" x-text="milestone.icon"></span>
                       <div>
-                        <div class="font-medium text-on-surface" x-text="milestone.name"></div>
+                        <div
+                          class="font-medium text-on-surface"
+                          x-text="milestone.name"
+                        ></div>
                         <div
                           class="text-sm text-on-surface-variant"
                           x-text="milestone.progress + '/' + milestone.required"
@@ -331,10 +339,12 @@
             </div>
 
             <!-- Workout Type Selection -->
-            <template x-if="main.selectedMilestone">
-              <div class="space-y-4 mb-6">
-                <h3 class="text-lg font-medium text-on-surface">Choose Exercise</h3>
-                <div class="space-y-2 max-h-48 overflow-y-auto">
+            <template x-if="main.selectedMilestone && !main.isBenchmarkMilestone">
+              <div id="workout-selection-exercise" class="space-y-4 mb-6">
+                <h3 class="text-lg font-medium text-on-surface">
+                  Choose Exercise
+                </h3>
+                <div class="space-y-2 max-h-48 overflow-y-auto p-0.5">
                   <template
                     x-for="workoutType in main.availableWorkoutTypes"
                     :key="workoutType"
@@ -358,11 +368,48 @@
               </div>
             </template>
 
+            <!-- Benchmark Workout Selection -->
+            <template x-if="main.selectedMilestone && main.isBenchmarkMilestone">
+              <div id="benchmark-selection" class="space-y-4 mb-6">
+                <h3 class="text-lg font-medium text-on-surface">
+                  Choose Benchmark Workout
+                </h3>
+                <div class="space-y-2 max-h-48 overflow-y-auto p-0.5">
+                  <template
+                    x-for="(benchmark, index) in main.availableBenchmarks"
+                    :key="index"
+                  >
+                    <button
+                      @click="main.selectedBenchmarkIndex = index"
+                      :class="main.selectedBenchmarkIndex === index ? 'ring-2 ring-primary bg-primary-container' : 'bg-surface-variant'"
+                      class="w-full p-3 rounded-xl text-left transition-all border border-outline-variant hover:bg-primary-container/50"
+                    >
+                      <div class="flex items-center justify-between mb-2">
+                        <span class="font-medium text-lg" x-text="benchmark.name"></span>
+                        <span
+                          class="material-icons text-on-surface-variant"
+                          x-show="main.selectedBenchmarkIndex === index"
+                          >check_circle</span
+                        >
+                      </div>
+                      <div class="text-sm text-on-surface-variant">
+                        <span x-text="benchmark.exercises.length"></span> exercises
+                        <template x-if="benchmark.timeCapMinutes">
+                          • <span x-text="benchmark.timeCapMinutes"></span> min time cap
+                        </template>
+                      </div>
+                    </button>
+                  </template>
+                </div>
+              </div>
+            </template>
+
             <!-- Continue Button -->
             <button
               @click="main.selectWorkout()"
-              :disabled="!main.selectedMilestone || !main.selectedWorkoutType"
-              :class="(!main.selectedMilestone || !main.selectedWorkoutType) ? 'bg-outline-variant text-on-surface-variant cursor-not-allowed' : 'bg-primary text-on-primary hover:bg-primary/90'"
+              :disabled="!main.selectedMilestone || (!main.isBenchmarkMilestone && !main.selectedWorkoutType) || (main.isBenchmarkMilestone && main.selectedBenchmarkIndex === null)"
+              :class="(!main.selectedMilestone || (!main.isBenchmarkMilestone && !main.selectedWorkoutType) || (main.isBenchmarkMilestone && main.selectedBenchmarkIndex === null)) ? 'bg-outline-variant text-on-surface-variant cursor-not-allowed' : 'bg-primary text-on-primary hover:bg-primary/90'"
+              id="workout-selection-next-button"
               class="w-full py-4 rounded-2xl font-bold transition-all"
             >
               Next: Choose Proof Method
@@ -393,14 +440,29 @@
                 @click="main.cancelProofMethodSelection()"
                 class="p-2 hover:bg-surface-variant rounded-full transition-colors"
               >
-                <span class="material-icons text-on-surface-variant">close</span>
+                <span class="material-icons text-on-surface-variant"
+                  >close</span
+                >
               </button>
             </div>
 
             <!-- Selected Workout Summary -->
             <div class="bg-primary-container rounded-2xl p-4 mb-6">
-              <p class="text-sm text-on-surface-variant mb-1">Selected Workout</p>
-              <p class="font-medium text-on-surface" x-text="main.selectedWorkoutType"></p>
+              <p class="text-sm text-on-surface-variant mb-1">
+                Selected Workout
+              </p>
+              <template x-if="!main.isBenchmarkMilestone">
+                <p
+                  class="font-medium text-on-surface"
+                  x-text="main.selectedWorkoutType"
+                ></p>
+              </template>
+              <template x-if="main.isBenchmarkMilestone">
+                <p
+                  class="font-medium text-on-surface"
+                  x-text="main.availableBenchmarks[main.selectedBenchmarkIndex]?.name"
+                ></p>
+              </template>
               <p
                 class="text-sm text-on-surface-variant"
                 x-text="'towards: ' + main.selectedMilestone"

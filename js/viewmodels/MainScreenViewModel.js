@@ -38,6 +38,9 @@ export class MainScreenViewModel {
     this.selectedMilestone = "";
     this.selectedWorkoutType = "";
     this.availableWorkoutTypes = [];
+    this.selectedBenchmarkIndex = null; // For benchmark milestones
+    this.availableBenchmarks = []; // Benchmark workout options
+    this.isBenchmarkMilestone = false; // Flag to indicate if selected milestone uses benchmarks
 
     // Workout adding state - step 2: select proof method
     this.showProofMethodModal = false;
@@ -113,23 +116,23 @@ export class MainScreenViewModel {
   async loadAvailableMilestones() {
     const allMilestones =
       await this._progressionService.getAvailableMilestones();
-    
+
     // Group milestones into early (bronze, silver, gold) and late (platinum, diamond)
     const early = [];
     const late = [];
-    
+
     for (const milestone of allMilestones) {
-      if (['bronze', 'silver', 'gold'].includes(milestone.type)) {
+      if (["bronze", "silver", "gold"].includes(milestone.type)) {
         early.push(milestone);
       } else {
         late.push(milestone);
       }
     }
-    
+
     this.availableMilestones = allMilestones;
     this.groupedMilestones = {
       early: early,
-      late: late
+      late: late,
     };
   }
 
@@ -154,21 +157,100 @@ export class MainScreenViewModel {
   }
 
   /**
-   * Update available workout types based on selected milestone
+   * Update available workout types or benchmarks based on selected milestone
    */
   updateWorkoutTypes() {
     const milestone = this.availableMilestones.find(
       (m) => m.type === this.selectedMilestone,
     );
-    if (milestone && milestone.workoutTypes.length > 0) {
-      this.availableWorkoutTypes = milestone.workoutTypes;
-    } else {
-      this.availableWorkoutTypes = getAllWorkoutTypes();
+
+    if (!milestone) {
+      this.availableWorkoutTypes = [];
+      this.availableBenchmarks = [];
+      this.isBenchmarkMilestone = false;
+      return;
     }
 
-    if (this.availableWorkoutTypes.length > 0) {
-      this.selectedWorkoutType = this.availableWorkoutTypes[0];
+    // Check if this milestone uses benchmarks
+    this.isBenchmarkMilestone = milestone.usesBenchmarks || false;
+
+    if (this.isBenchmarkMilestone) {
+      // Load benchmark workouts for this milestone
+      this.availableBenchmarks = milestone.benchmarks || [];
+      this.availableWorkoutTypes = [];
+      this.selectedWorkoutType = "";
+      this.selectedBenchmarkIndex =
+        this.availableBenchmarks.length > 0 ? 0 : null;
+    } else {
+      // Load regular workout types
+      if (milestone.workoutTypes && milestone.workoutTypes.length > 0) {
+        this.availableWorkoutTypes = milestone.workoutTypes;
+      } else {
+        this.availableWorkoutTypes = getAllWorkoutTypes();
+      }
+      this.availableBenchmarks = [];
+      this.selectedBenchmarkIndex = null;
+
+      if (this.availableWorkoutTypes.length > 0) {
+        this.selectedWorkoutType = this.availableWorkoutTypes[0];
+      }
     }
+  }
+
+  /**
+   * Select a milestone and scroll to workout options
+   */
+  selectMilestone(milestoneType) {
+    this.selectedMilestone = milestoneType;
+    this.updateWorkoutTypes();
+    this.scrollToWorkoutOptions();
+  }
+
+  /**
+   * Scroll workout selection modal to exercise list and continue button
+   */
+  scrollToWorkoutOptions() {
+    const container = document.getElementById(
+      "workout-selection-modal-content",
+    );
+    const exerciseSection = document.getElementById(
+      "workout-selection-exercise",
+    );
+    const nextButton = document.getElementById("workout-selection-next-button");
+
+    if (!container || !exerciseSection) {
+      return;
+    }
+
+    const isInView = (element) => {
+      const elementRect = element.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+      return (
+        elementRect.top >= containerRect.top &&
+        elementRect.bottom <= containerRect.bottom
+      );
+    };
+
+    requestAnimationFrame(() => {
+      container.scrollTo({
+        top: Math.max(exerciseSection.offsetTop - 16, 0),
+        behavior: "smooth",
+      });
+
+      if (nextButton) {
+        setTimeout(() => {
+          if (!isInView(nextButton)) {
+            const targetBottom =
+              nextButton.offsetTop + nextButton.offsetHeight + 16;
+            const scrollTop = Math.max(
+              targetBottom - container.clientHeight,
+              0,
+            );
+            container.scrollTo({ top: scrollTop, behavior: "smooth" });
+          }
+        }, 200);
+      }
+    });
   }
 
   /**
@@ -178,6 +260,7 @@ export class MainScreenViewModel {
     this.showWorkoutSelectionModal = true;
     this.selectedMilestone = "";
     this.selectedWorkoutType = "";
+    this.selectedBenchmarkIndex = null;
     this.errorMessage = "";
     this._logger.log("Starting Add Workout flow - workout selection");
   }
@@ -186,17 +269,39 @@ export class MainScreenViewModel {
    * Select a workout and milestone, move to proof method selection
    */
   selectWorkout() {
-    if (!this.selectedMilestone || !this.selectedWorkoutType) {
-      this.errorMessage = "Please select both milestone and workout type";
+    if (!this.selectedMilestone) {
+      this.errorMessage = "Please select a milestone";
       return;
     }
-    
+
+    if (this.isBenchmarkMilestone) {
+      if (this.selectedBenchmarkIndex === null) {
+        this.errorMessage = "Please select a benchmark workout";
+        return;
+      }
+    } else {
+      if (!this.selectedWorkoutType) {
+        this.errorMessage = "Please select a workout type";
+        return;
+      }
+    }
+
     this.showWorkoutSelectionModal = false;
     this.showProofMethodModal = true;
     this.errorMessage = "";
-    this._logger.log(
-      `Workout selected: ${this.selectedWorkoutType} for ${this.selectedMilestone}`
-    );
+
+    if (this.isBenchmarkMilestone) {
+      const benchmarkName =
+        this.availableBenchmarks[this.selectedBenchmarkIndex]?.name ||
+        "Benchmark";
+      this._logger.log(
+        `Benchmark selected: ${benchmarkName} for ${this.selectedMilestone}`,
+      );
+    } else {
+      this._logger.log(
+        `Workout selected: ${this.selectedWorkoutType} for ${this.selectedMilestone}`,
+      );
+    }
   }
 
   /**
@@ -206,6 +311,7 @@ export class MainScreenViewModel {
     this.showWorkoutSelectionModal = false;
     this.selectedMilestone = "";
     this.selectedWorkoutType = "";
+    this.selectedBenchmarkIndex = null;
     this.errorMessage = "";
   }
 
@@ -222,9 +328,21 @@ export class MainScreenViewModel {
    * Step 2: Select proof method and submit workout
    */
   async selectProofMethodAndSubmit(proofMethod) {
-    if (!this.selectedWorkoutType || !this.selectedMilestone) {
-      this.errorMessage = "Please select workout type and milestone";
+    if (!this.selectedMilestone) {
+      this.errorMessage = "Please select milestone";
       return;
+    }
+
+    if (this.isBenchmarkMilestone) {
+      if (this.selectedBenchmarkIndex === null) {
+        this.errorMessage = "Please select benchmark workout";
+        return;
+      }
+    } else {
+      if (!this.selectedWorkoutType) {
+        this.errorMessage = "Please select workout type";
+        return;
+      }
     }
 
     this.selectedProofMethod = proofMethod;
@@ -233,13 +351,40 @@ export class MainScreenViewModel {
     this.successMessage = "";
 
     try {
-      // Create workout in repository
-      const workout = await this._workoutRepository.createWorkout(
-        this.selectedWorkoutType,
-        this.selectedProofMethod,
-        this.selectedMilestone,
-        this.currentTier,
-      );
+      let workout;
+      let result;
+
+      if (this.isBenchmarkMilestone) {
+        // For benchmark milestones, complete the selected benchmark
+        const benchmarkName =
+          this.availableBenchmarks[this.selectedBenchmarkIndex]?.name ||
+          "Benchmark";
+
+        // Create workout with benchmark name as the type
+        workout = await this._workoutRepository.createWorkout(
+          benchmarkName,
+          this.selectedProofMethod,
+          this.selectedMilestone,
+          this.currentTier,
+        );
+
+        // Complete the specific benchmark
+        result = await this._progressionService.completeBenchmark(
+          workout,
+          this.selectedBenchmarkIndex,
+        );
+      } else {
+        // Regular workout flow
+        workout = await this._workoutRepository.createWorkout(
+          this.selectedWorkoutType,
+          this.selectedProofMethod,
+          this.selectedMilestone,
+          this.currentTier,
+        );
+
+        // Update progression
+        result = await this._progressionService.addWorkoutProgress(workout);
+      }
 
       // Handle proof method (stub implementations)
       if (this.selectedProofMethod === "escrow") {
@@ -248,11 +393,12 @@ export class MainScreenViewModel {
         await this._proofService.initiateVideoProof(workout);
       }
 
-      // Update progression
-      const result = await this._progressionService.addWorkoutProgress(workout);
-
       if (result.success) {
-        this.successMessage = `Workout logged! ${result.milestoneProgress.name}: ${result.milestoneProgress.progress}/${result.milestoneProgress.required}`;
+        if (this.isBenchmarkMilestone) {
+          this.successMessage = `Benchmark completed! ${result.milestoneProgress.name}: ${result.milestoneProgress.progress}/${result.milestoneProgress.required} benchmarks`;
+        } else {
+          this.successMessage = `Workout logged! ${result.milestoneProgress.name}: ${result.milestoneProgress.progress}/${result.milestoneProgress.required}`;
+        }
 
         // Handle tier level up
         if (result.tierLevelUp && result.tierLevelUp.leveledUp) {
@@ -279,6 +425,7 @@ export class MainScreenViewModel {
         this.selectedProofMethod = "";
         this.selectedMilestone = "";
         this.selectedWorkoutType = "";
+        this.selectedBenchmarkIndex = null;
       }
 
       this._logger.log("Workout submitted successfully", workout);
