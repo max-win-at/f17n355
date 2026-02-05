@@ -53,6 +53,17 @@ export class MainScreenViewModel {
     this.escrowWaitingResult = null;
     this.escrowIconSuccess = false; // Flag to show green success state before fade out
 
+    // Video proof state
+    this.showVideoProofScreen = false;
+    this.isRecording = false;
+    this.isPaused = false;
+    this.hasRecording = false; // True when recording is stopped and ready to submit/discard
+    this.videoProofWorkout = null; // Store workout for later submission
+    this.isUploadingVideo = false;
+    this.uploadProgress = 0;
+    this.isAnalyzingVideo = false;
+    this.analyzingProgress = 0;
+
     // Level up celebration state
     this.showLevelUp = false;
     this.newTierName = "";
@@ -318,36 +329,56 @@ export class MainScreenViewModel {
 
     try {
       let workout;
-      let result;
 
+      // Create workout but don't add to milestone yet for video proof
       if (this.isBenchmarkMilestone) {
-        // For benchmark milestones, complete the selected benchmark
         const benchmarkName =
           this.availableBenchmarks[this.selectedBenchmarkIndex]?.name ||
           "Benchmark";
 
-        // Create workout with benchmark name as the type
         workout = await this._workoutRepository.createWorkout(
           benchmarkName,
           this.selectedProofMethod,
           this.selectedMilestone,
           this.currentTier,
         );
-
-        // Complete the specific benchmark
-        result = await this._progressionService.completeBenchmark(
-          workout,
-          this.selectedBenchmarkIndex,
-        );
       } else {
-        // Regular workout flow
         workout = await this._workoutRepository.createWorkout(
           this.selectedWorkoutType,
           this.selectedProofMethod,
           this.selectedMilestone,
           this.currentTier,
         );
+      }
 
+      // Special handling for Video: show camera screen instead of immediately processing
+      if (this.selectedProofMethod === ProofMethodType.VIDEO) {
+        this._logger.log("Video proof selected, showing camera screen");
+
+        // Store workout for later submission after video analysis
+        this.videoProofWorkout = workout;
+
+        // Show the video proof camera screen
+        this.showProofMethodModal = false;
+        this.showVideoProofScreen = true;
+        this.isRecording = false;
+        this.isPaused = false;
+        this.hasRecording = false;
+        this.isLoading = false;
+
+        return;
+      }
+
+      // For non-video proofs, process the workout now
+      let result;
+
+      if (this.isBenchmarkMilestone) {
+        // Complete the specific benchmark
+        result = await this._progressionService.completeBenchmark(
+          workout,
+          this.selectedBenchmarkIndex,
+        );
+      } else {
         // Update progression
         result = await this._progressionService.addWorkoutProgress(workout);
       }
@@ -355,42 +386,36 @@ export class MainScreenViewModel {
       // Special handling for Escrow: show waiting indicator instead of immediately processing
       if (this.selectedProofMethod === ProofMethodType.ESCROW) {
         this._logger.log("Escrow proof initiated, showing waiting indicator");
-        
+
         // Store workout and result for later processing
         this.escrowWaitingWorkout = workout;
         this.escrowWaitingResult = result;
-        
+
         // Show the waiting icon and start the simulated waiting period
         this.isEscrowWaiting = true;
         this.escrowIconSuccess = false;
         this.showProofMethodModal = false;
-        
-        // Simulate 8 second waiting period for guarantor verification
-        const ESCROW_WAIT_TIME = 8000;
-        await new Promise(resolve => setTimeout(resolve, ESCROW_WAIT_TIME));
-        
+
+        // Simulate 12-15 second waiting period for senior member verification (longer than AI)
+        const ESCROW_WAIT_TIME = 12000 + Math.random() * 3000;
+        await new Promise((resolve) => setTimeout(resolve, ESCROW_WAIT_TIME));
+
         // Process the result after waiting period
         this._processWorkoutResult(result, this.selectedMilestone, workout);
-        
+
         // Change icon color to green to indicate success
         this.escrowIconSuccess = true;
-        
+
         // Wait for the fade-out animation to complete before hiding the icon
         const FADE_OUT_DURATION = 500;
-        await new Promise(resolve => setTimeout(resolve, FADE_OUT_DURATION));
+        await new Promise((resolve) => setTimeout(resolve, FADE_OUT_DURATION));
         this.isEscrowWaiting = false;
         this.escrowIconSuccess = false;
-        
+
         return;
-
       }
 
-      // Handle other proof methods normally
-      if (this.selectedProofMethod === ProofMethodType.VIDEO) {
-        await this._proofService.initiateVideoProof(workout);
-      }
-
-      // Process result immediately for non-escrow methods
+      // Process result immediately for non-escrow/non-video methods
       this._processWorkoutResult(result, this.selectedMilestone, workout);
 
       // Close modals on success
@@ -439,7 +464,7 @@ export class MainScreenViewModel {
       // Handle tier level up
       if (result.tierLevelUp && result.tierLevelUp.leveledUp) {
         this.newTierName = result.tierLevelUp.tierName;
-        this._athleteRepository.getCurrentAthlete().then(athlete => {
+        this._athleteRepository.getCurrentAthlete().then((athlete) => {
           this.athlete = athlete;
         });
         // Trigger fireworks after a short delay
@@ -610,5 +635,124 @@ export class MainScreenViewModel {
     setTimeout(() => {
       container.remove();
     }, 2500);
+  }
+
+  /**
+   * Start recording video proof
+   */
+  startVideoRecording() {
+    this._logger.log("Video recording started");
+    this.isRecording = true;
+    this.isPaused = false;
+  }
+
+  /**
+   * Pause/Continue video recording
+   */
+  togglePauseVideoRecording() {
+    this.isPaused = !this.isPaused;
+    this._logger.log(
+      `Video recording ${this.isPaused ? "paused" : "continued"}`,
+    );
+  }
+
+  /**
+   * Stop video recording
+   */
+  stopVideoRecording() {
+    this._logger.log("Video recording stopped");
+    this.isRecording = false;
+    this.isPaused = false;
+    this.hasRecording = true;
+  }
+
+  /**
+   * Discard video recording and return to main screen
+   */
+  discardVideoRecording() {
+    this._logger.log("Video recording discarded");
+    this.showVideoProofScreen = false;
+    this.isRecording = false;
+    this.isPaused = false;
+    this.hasRecording = false;
+    this.videoProofWorkout = null;
+
+    // Reset selection state
+    this.selectedProofMethod = "";
+    this.selectedMilestone = "";
+    this.selectedWorkoutType = "";
+    this.selectedBenchmarkIndex = null;
+  }
+
+  /**
+   * Submit video proof and trigger upload/analysis flow
+   */
+  async submitVideoProof() {
+    this._logger.log("Submitting video proof");
+
+    // Hide the video screen
+    this.showVideoProofScreen = false;
+    this.hasRecording = false;
+
+    // Start upload process
+    this.isUploadingVideo = true;
+    this.uploadProgress = 0;
+
+    // Simulate random upload time (3-6 seconds)
+    const uploadTime = 3000 + Math.random() * 3000;
+    const uploadSteps = 20;
+    const uploadInterval = uploadTime / uploadSteps;
+
+    for (let i = 0; i <= uploadSteps; i++) {
+      this.uploadProgress = Math.floor((i / uploadSteps) * 100);
+      await new Promise((resolve) => setTimeout(resolve, uploadInterval));
+    }
+
+    // Fade out upload, fade in analysis
+    this.isUploadingVideo = false;
+    await new Promise((resolve) => setTimeout(resolve, 500)); // Fade transition
+
+    this.isAnalyzingVideo = true;
+    this.analyzingProgress = 0;
+
+    // Simulate random analysis time (2-5 seconds)
+    const analysisTime = 2000 + Math.random() * 3000;
+    const analysisSteps = 20;
+    const analysisInterval = analysisTime / analysisSteps;
+
+    for (let i = 0; i <= analysisSteps; i++) {
+      this.analyzingProgress = Math.floor((i / analysisSteps) * 100);
+      await new Promise((resolve) => setTimeout(resolve, analysisInterval));
+    }
+
+    // Analysis complete, now add the workout
+    this.isAnalyzingVideo = false;
+
+    try {
+      const workout = this.videoProofWorkout;
+      let result;
+
+      if (this.isBenchmarkMilestone) {
+        result = await this._progressionService.completeBenchmark(
+          workout,
+          this.selectedBenchmarkIndex,
+        );
+      } else {
+        result = await this._progressionService.addWorkoutProgress(workout);
+      }
+
+      // Process the result (animations, celebrations)
+      this._processWorkoutResult(result, this.selectedMilestone, workout);
+
+      // Clean up state
+      this.videoProofWorkout = null;
+      this.selectedProofMethod = "";
+      this.selectedMilestone = "";
+      this.selectedWorkoutType = "";
+      this.selectedBenchmarkIndex = null;
+    } catch (error) {
+      this._logger.error("Failed to process video proof workout", error);
+      this.errorMessage = "Failed to process video proof";
+    }
   }
 }

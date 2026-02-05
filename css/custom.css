@@ -409,3 +409,72 @@ button:active:not(:disabled) {
     cursor: pointer;
   }
 }
+
+/* ========== VIDEO PROOF ANIMATIONS ========== */
+
+/* Paused GIF effect - using a filter */
+.video-proof-paused img {
+  filter: grayscale(50%) brightness(0.8);
+}
+
+/* Video proof container transitions */
+.video-proof-screen {
+  will-change: opacity;
+}
+
+/* Upload/Analysis indicator bounce */
+@keyframes indicator-bounce {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-10px) scale(1.05);
+  }
+}
+
+.video-indicator-container {
+  animation: indicator-bounce 2s ease-in-out infinite;
+}
+
+/* Circular progress animation */
+@keyframes progress-spin {
+  0% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: calc(2 * 3.14159 * 20);
+  }
+}
+
+/* Brain icon pulse for AI analysis */
+@keyframes brain-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 0.8;
+  }
+}
+
+.brain-analyzing {
+  animation: brain-pulse 1.5s ease-in-out infinite;
+}
+
+/* REC indicator pulse */
+@keyframes rec-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+.rec-indicator {
+  animation: rec-pulse 1s ease-in-out infinite;
+}
