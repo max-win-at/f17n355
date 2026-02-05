@@ -220,3 +220,134 @@ button:active:not(:disabled) {
     padding-bottom: max(0px, env(safe-area-inset-bottom));
   }
 }
+
+/* ========== CELEBRATION ANIMATIONS ========== */
+
+/* Container for falling/raining particles */
+.celebration-rain-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+/* Individual falling particle */
+.celebration-particle {
+  position: absolute;
+  font-size: 2rem;
+  animation: fall linear forwards;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+/* Falling animation - particles rain down */
+@keyframes fall {
+  0% {
+    opacity: 1;
+    transform: translateY(0) rotateZ(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(100vh) rotateZ(360deg);
+  }
+}
+
+/* Dumbbell falling particles (workout success) */
+.celebration-particle.dumbbell {
+  animation: fall 3s linear forwards;
+}
+
+/* Clap falling particles (milestone completion) */
+.celebration-particle.clap {
+  animation: fall 3s linear forwards;
+}
+
+/* Medal/Crown falling particles (tier up) */
+.celebration-particle.medal {
+  animation: fall 3.5s linear forwards;
+}
+
+/* Stagger animations with different delays and horizontal offsets */
+@keyframes fall-left {
+  0% {
+    opacity: 1;
+    transform: translateX(-100px) translateY(0) rotateZ(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-150px) translateY(100vh) rotateZ(360deg);
+  }
+}
+
+@keyframes fall-right {
+  0% {
+    opacity: 1;
+    transform: translateX(100px) translateY(0) rotateZ(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(150px) translateY(100vh) rotateZ(360deg);
+  }
+}
+
+@keyframes fall-center {
+  0% {
+    opacity: 1;
+    transform: translateX(0) translateY(0) rotateZ(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(0) translateY(100vh) rotateZ(360deg);
+  }
+}
+
+/* Fireworks burst animation for tier up */
+@keyframes fireworks-burst {
+  0% {
+    opacity: 1;
+    transform: scale(0) translateX(0) translateY(0);
+  }
+  15% {
+    opacity: 1;
+    transform: scale(1) translateX(var(--tx)) translateY(var(--ty));
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.5) translateX(calc(var(--tx) * 1.5)) translateY(calc(var(--ty) * 1.5));
+  }
+}
+
+/* Fireworks particle container */
+.fireworks-container {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+/* Individual fireworks particle */
+.fireworks-particle {
+  position: absolute;
+  width: 2rem;
+  height: 2rem;
+  font-size: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+  animation: fireworks-burst 2s ease-out forwards;
+  transform-origin: center;
+  margin-left: -1rem;
+  margin-top: -1rem;
+}
+
+/* Tier up celebration - combined effect */
+.tier-up-celebration {
+  animation: tier-level-up var(--md-sys-motion-duration-long)
+    var(--md-sys-motion-easing-emphasized-decelerate);
+}

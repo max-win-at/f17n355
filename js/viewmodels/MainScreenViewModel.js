@@ -1,4 +1,5 @@
 import { getAllWorkoutTypes } from "../models/TierConfiguration.js";
+import { ProofMethodType } from "../constants/ProofMethodType.js";
 
 /**
  * MainScreenViewModel - Handles main workout screen with milestones and tier progress
@@ -198,60 +199,19 @@ export class MainScreenViewModel {
   }
 
   /**
-   * Select a milestone and scroll to workout options
+   * Select a milestone and signal for view scrolling
    */
   selectMilestone(milestoneType) {
     this.selectedMilestone = milestoneType;
     this.updateWorkoutTypes();
-    this.scrollToWorkoutOptions();
+    this.shouldAutoScrollToExercises = true;
   }
 
   /**
-   * Scroll workout selection modal to exercise list and continue button
+   * Signal that the view should scroll (handled by Alpine directives)
+   * Flag indicates the view should auto-scroll to the exercise selection
    */
-  scrollToWorkoutOptions() {
-    const container = document.getElementById(
-      "workout-selection-modal-content",
-    );
-    const exerciseSection = document.getElementById(
-      "workout-selection-exercise",
-    );
-    const nextButton = document.getElementById("workout-selection-next-button");
-
-    if (!container || !exerciseSection) {
-      return;
-    }
-
-    const isInView = (element) => {
-      const elementRect = element.getBoundingClientRect();
-      const containerRect = container.getBoundingClientRect();
-      return (
-        elementRect.top >= containerRect.top &&
-        elementRect.bottom <= containerRect.bottom
-      );
-    };
-
-    requestAnimationFrame(() => {
-      container.scrollTo({
-        top: Math.max(exerciseSection.offsetTop - 16, 0),
-        behavior: "smooth",
-      });
-
-      if (nextButton) {
-        setTimeout(() => {
-          if (!isInView(nextButton)) {
-            const targetBottom =
-              nextButton.offsetTop + nextButton.offsetHeight + 16;
-            const scrollTop = Math.max(
-              targetBottom - container.clientHeight,
-              0,
-            );
-            container.scrollTo({ top: scrollTop, behavior: "smooth" });
-          }
-        }, 200);
-      }
-    });
-  }
+  shouldAutoScrollToExercises = false;
 
   /**
    * Step 1: Start adding a workout - show workout selection modal
@@ -387,29 +347,44 @@ export class MainScreenViewModel {
       }
 
       // Handle proof method (stub implementations)
-      if (this.selectedProofMethod === "escrow") {
+      if (this.selectedProofMethod === ProofMethodType.ESCROW) {
         await this._proofService.initiateEscrowProof(workout);
-      } else if (this.selectedProofMethod === "video") {
+      } else if (this.selectedProofMethod === ProofMethodType.VIDEO) {
         await this._proofService.initiateVideoProof(workout);
       }
 
       if (result.success) {
+        // Get the milestone element to animate from
+        const milestoneElement = this._findMilestoneElement(this.selectedMilestone);
+
         if (this.isBenchmarkMilestone) {
           this.successMessage = `Benchmark completed! ${result.milestoneProgress.name}: ${result.milestoneProgress.progress}/${result.milestoneProgress.required} benchmarks`;
         } else {
           this.successMessage = `Workout logged! ${result.milestoneProgress.name}: ${result.milestoneProgress.progress}/${result.milestoneProgress.required}`;
         }
 
-        // Handle tier level up
-        if (result.tierLevelUp && result.tierLevelUp.leveledUp) {
-          this.showLevelUp = true;
-          this.newTierName = result.tierLevelUp.tierName;
-          this.athlete = await this._athleteRepository.getCurrentAthlete();
-        }
-
         // Handle milestone completion
         if (result.milestoneProgress.justCompleted) {
           this.successMessage = `🎉 Milestone completed: ${result.milestoneProgress.name}!`;
+          // Trigger clap animation for milestone completion from the milestone
+          this.triggerClapRain(milestoneElement);
+        } else {
+          // Trigger dumbbell rain for regular workout from the milestone
+          this.triggerDumbbellRain(milestoneElement);
+        }
+
+        // Handle tier level up
+        if (result.tierLevelUp && result.tierLevelUp.leveledUp) {
+          this.newTierName = result.tierLevelUp.tierName;
+          this.athlete = await this._athleteRepository.getCurrentAthlete();
+          // Trigger fireworks after a short delay
+          setTimeout(() => {
+            this.triggerTierUpFireworks();
+          }, 500);
+          // Show level up overlay after animation starts
+          setTimeout(() => {
+            this.showLevelUp = true;
+          }, 1000);
         }
       } else {
         this.errorMessage = result.error || "Failed to log workout";
@@ -454,5 +429,138 @@ export class MainScreenViewModel {
       return `${baseClass} milestone-completed`;
     }
     return baseClass;
+  }
+
+  /**
+   * Create and trigger falling dumbbells animation
+   * Called when a workout is successfully added
+   */
+  triggerDumbbellRain(milestoneElement) {
+    this._createRainingAnimation("💪", "dumbbell", milestoneElement, 15);
+  }
+
+  /**
+   * Create and trigger falling claps animation
+   * Called when a milestone is completed
+   */
+  triggerClapRain(milestoneElement) {
+    this._createRainingAnimation("👏", "clap", milestoneElement, 20);
+  }
+
+  /**
+   * Create and trigger fireworks explosion animation
+   * Called when tier level up happens
+   */
+  triggerTierUpFireworks() {
+    this._createFireworksAnimation(30);
+  }
+
+  /**
+   * Find milestone element in the DOM by milestone type
+   * @private
+   */
+  _findMilestoneElement(milestoneType) {
+    if (!milestoneType) return null;
+    const selector = `[data-milestone-type="${milestoneType}"]`;
+    return document.querySelector(selector);
+  }
+
+  /**
+   * Helper: Create raining particle animation from a specific milestone
+   * @private
+   */
+  _createRainingAnimation(emoji, className, sourceElement, particleCount) {
+    // Get the position to start from (center of screen if no element)
+    let startX = window.innerWidth / 2;
+    let startY = window.innerHeight / 3; // Start from upper area
+
+    if (sourceElement) {
+      const rect = sourceElement.getBoundingClientRect();
+      startX = rect.left + rect.width / 2;
+      startY = rect.top + rect.height / 2;
+    }
+
+    // Create container
+    const container = document.createElement("div");
+    container.className = "celebration-rain-container";
+    document.body.appendChild(container);
+
+    // Create particles
+    for (let i = 0; i < particleCount; i++) {
+      const particle = document.createElement("div");
+      particle.className = `celebration-particle ${className}`;
+      particle.textContent = emoji;
+
+      // Random horizontal offset
+      const randomOffset = (Math.random() - 0.5) * 300;
+      const randomDelay = Math.random() * 0.3;
+      const duration = 2.5 + Math.random() * 1;
+
+      particle.style.left = startX + randomOffset + "px";
+      particle.style.top = startY + "px";
+      particle.style.setProperty("--duration", duration + "s");
+
+      // Set animation with random delay and direction variation
+      if (randomOffset < -50) {
+        particle.style.animation = `fall-left ${duration}s linear ${randomDelay}s forwards`;
+      } else if (randomOffset > 50) {
+        particle.style.animation = `fall-right ${duration}s linear ${randomDelay}s forwards`;
+      } else {
+        particle.style.animation = `fall-center ${duration}s linear ${randomDelay}s forwards`;
+      }
+
+      container.appendChild(particle);
+    }
+
+    // Clean up after animation completes
+    setTimeout(() => {
+      container.remove();
+    }, 3500);
+  }
+
+  /**
+   * Helper: Create fireworks explosion animation from center
+   * @private
+   */
+  _createFireworksAnimation(particleCount) {
+    // Create container at center
+    const container = document.createElement("div");
+    container.className = "fireworks-container";
+    document.body.appendChild(container);
+
+    // Tier up symbols: medals (🏅), diamonds (💎), crowns (👑)
+    const symbols = ["🏅", "💎", "👑"];
+
+    // Create fireworks particles
+    for (let i = 0; i < particleCount; i++) {
+      const particle = document.createElement("div");
+      particle.className = "fireworks-particle";
+
+      // Cycle through symbols
+      const symbol = symbols[i % symbols.length];
+      particle.textContent = symbol;
+
+      // Calculate burst direction (radial from center)
+      const angle = (i / particleCount) * Math.PI * 2;
+      const distance = 200 + Math.random() * 150;
+      const tx = Math.cos(angle) * distance;
+      const ty = Math.sin(angle) * distance;
+
+      // Add some randomness
+      const randomDelay = Math.random() * 0.1;
+      const randomDuration = 1.8 + Math.random() * 0.4;
+
+      particle.style.setProperty("--tx", tx + "px");
+      particle.style.setProperty("--ty", ty + "px");
+      particle.style.animationDelay = randomDelay + "s";
+      particle.style.animationDuration = randomDuration + "s";
+
+      container.appendChild(particle);
+    }
+
+    // Clean up after animation completes
+    setTimeout(() => {
+      container.remove();
+    }, 2500);
   }
 }

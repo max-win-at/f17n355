@@ -7,6 +7,7 @@
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
     <meta name="theme-color" content="#6750A4" />
+    <meta http-equiv="Cache-Control" content="max-age=0, must-revalidate" />
     <meta
       name="description"
       content="Fitness Supreme - Gamified fitness tracking with proof-based progression"
@@ -155,8 +156,8 @@
             :class="isSetupValid ? 'bg-primary hover:bg-primary/90' : 'bg-outline-variant cursor-not-allowed'"
             class="w-full py-4 rounded-xl text-on-primary font-bold text-lg transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
           >
-            <span class="material-icons">rocket_launch</span>
-            Launch
+            <span class="material-icons" x-text="setupActionIcon"></span>
+            <span x-text="setupActionLabel"></span>
           </button>
         </div>
       </section>
@@ -187,9 +188,12 @@
         <div class="relative z-10 flex justify-between items-center p-4">
           <button
             @click="navigateTo('setup')"
-            class="p-2 rounded-full bg-surface-variant/80 hover:bg-surface-variant transition-colors"
+            class="w-10 h-10 inline-flex items-center justify-center rounded-full bg-surface-variant/80 hover:bg-surface-variant transition-colors"
           >
-            <span class="material-icons text-on-surface-variant">person</span>
+            <span
+              class="material-icons text-on-surface-variant text-2xl leading-none"
+              >person</span
+            >
           </button>
 
           <h2
@@ -199,9 +203,12 @@
 
           <button
             @click="navigateTo('history')"
-            class="p-2 rounded-full bg-surface-variant/80 hover:bg-surface-variant transition-colors"
+            class="w-10 h-10 inline-flex items-center justify-center rounded-full bg-surface-variant/80 hover:bg-surface-variant transition-colors"
           >
-            <span class="material-icons text-on-surface-variant">history</span>
+            <span
+              class="material-icons text-on-surface-variant text-2xl leading-none"
+              >history</span
+            >
           </button>
         </div>
 
@@ -217,6 +224,7 @@
               <div
                 class="milestone-medal flex flex-col items-center"
                 :class="milestone.completed ? 'opacity-100' : 'opacity-40'"
+                :data-milestone-type="milestone.type"
               >
                 <div
                   class="w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-all duration-500"
@@ -256,7 +264,16 @@
         </div>
 
         <!-- Add Workout FAB -->
-        <div class="relative z-10 p-6">
+        <div
+          x-show="!main.showWorkoutSelectionModal && !main.showProofMethodModal"
+          x-transition:enter="transition ease-out duration-200"
+          x-transition:enter-start="opacity-0 translate-y-2"
+          x-transition:enter-end="opacity-100 translate-y-0"
+          x-transition:leave="transition ease-in duration-150"
+          x-transition:leave-start="opacity-100 translate-y-0"
+          x-transition:leave-end="opacity-0 translate-y-2"
+          class="relative z-10 p-6 mt-auto"
+        >
           <button
             @click="addWorkout()"
             class="w-full py-4 bg-primary hover:bg-primary/90 rounded-2xl shadow-xl text-on-primary font-bold text-lg flex items-center justify-center gap-2 transition-all duration-200"
@@ -266,145 +283,143 @@
           </button>
         </div>
 
-        <!-- Modal: Step 1 - Select Workout -->
-        <div
+        <!-- Screen: Select Workout (Full Screen) -->
+        <section
           x-show="main.showWorkoutSelectionModal"
-          x-transition:enter="transition ease-out duration-200"
-          x-transition:enter-start="opacity-0"
-          x-transition:enter-end="opacity-100"
-          @click.outside="main.cancelWorkoutSelection()"
-          class="fixed inset-0 bg-black/50 z-50 flex items-end"
+          x-transition:enter="transition ease-out duration-300"
+          x-transition:enter-start="opacity-0 translate-x-full"
+          x-transition:enter-end="opacity-100 translate-x-0"
+          x-transition:leave="transition ease-in duration-200"
+          x-transition:leave-start="opacity-100 translate-x-0"
+          x-transition:leave-end="opacity-0 -translate-x-full"
+          class="absolute inset-0 z-20 bg-surface p-6 flex flex-col overflow-y-auto"
         >
-          <div
-            @click.stop
-            x-transition:enter="transition ease-out duration-200"
-            x-transition:enter-start="translate-y-full"
-            x-transition:enter-end="translate-y-0"
-            id="workout-selection-modal-content"
-            class="w-full bg-surface rounded-t-3xl p-6 max-h-[80vh] overflow-y-auto"
-          >
-            <!-- Header -->
-            <div class="flex items-center justify-between mb-6">
-              <h2 class="text-2xl font-bold text-on-surface">Select Workout</h2>
+          <!-- Header -->
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="text-2xl font-bold text-on-surface">Select Workout</h2>
+            <button
+              @click="main.cancelWorkoutSelection()"
+              class="p-2 hover:bg-surface-variant rounded-full transition-colors"
+            >
+              <span class="material-icons text-on-surface-variant">close</span>
+            </button>
+          </div>
+
+          <!-- Error message -->
+          <template x-if="main.errorMessage">
+            <div class="mb-4 p-4 bg-red-100 text-red-800 rounded-lg">
+              <p x-text="main.errorMessage"></p>
+            </div>
+          </template>
+
+          <!-- Available Milestones -->
+          <div class="space-y-4 mb-6">
+            <template
+              x-for="milestone in main.getDisplayMilestones()"
+              :key="milestone.type"
+            >
               <button
-                @click="main.cancelWorkoutSelection()"
-                class="p-2 hover:bg-surface-variant rounded-full transition-colors"
+                @click="main.selectMilestone(milestone.type)"
+                :class="main.selectedMilestone === milestone.type ? 'ring-2 ring-inset ring-primary bg-primary-container' : 'bg-surface-variant'"
+                class="w-full p-4 rounded-2xl text-left transition-all border border-outline-variant hover:bg-primary-container/50 overflow-hidden"
               >
-                <span class="material-icons text-on-surface-variant"
-                  >close</span
-                >
-              </button>
-            </div>
-
-            <!-- Error message -->
-            <template x-if="main.errorMessage">
-              <div class="mb-4 p-4 bg-red-100 text-red-800 rounded-lg">
-                <p x-text="main.errorMessage"></p>
-              </div>
-            </template>
-
-            <!-- Available Milestones -->
-            <div class="space-y-4 mb-6">
-              <template
-                x-for="milestone in main.getDisplayMilestones()"
-                :key="milestone.type"
-              >
-                <button
-                  @click="main.selectMilestone(milestone.type)"
-                  :class="main.selectedMilestone === milestone.type ? 'ring-2 ring-primary bg-primary-container' : 'bg-surface-variant'"
-                  class="w-full p-4 rounded-2xl text-left transition-all border border-outline-variant hover:bg-primary-container/50"
-                >
-                  <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-3">
-                      <span class="text-2xl" x-text="milestone.icon"></span>
-                      <div>
-                        <div
-                          class="font-medium text-on-surface"
-                          x-text="milestone.name"
-                        ></div>
-                        <div
-                          class="text-sm text-on-surface-variant"
-                          x-text="milestone.progress + '/' + milestone.required"
-                        ></div>
-                      </div>
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-3">
+                    <span class="text-2xl" x-text="milestone.icon"></span>
+                    <div>
+                      <div
+                        class="font-medium text-on-surface"
+                        x-text="milestone.name"
+                      ></div>
+                      <div
+                        class="text-sm text-on-surface-variant"
+                        x-text="milestone.progress + '/' + milestone.required"
+                      ></div>
                     </div>
-                    <span
-                      class="material-icons text-on-surface-variant"
-                      x-show="main.selectedMilestone === milestone.type"
-                      >check_circle</span
-                    >
                   </div>
-                </button>
-              </template>
+                  <span
+                    class="material-icons text-on-surface-variant"
+                    x-show="main.selectedMilestone === milestone.type"
+                    >check_circle</span
+                  >
+                </div>
+              </button>
+            </template>
+          </div>
+
+          <!-- Workout Type Selection -->
+          <template x-if="main.selectedMilestone && !main.isBenchmarkMilestone">
+            <div id="workout-selection-exercise" class="space-y-4 mb-6">
+              <h3 class="text-lg font-medium text-on-surface">
+                Choose Exercise
+              </h3>
+              <div class="space-y-2 max-h-48 overflow-y-auto p-0.5">
+                <template
+                  x-for="workoutType in main.availableWorkoutTypes"
+                  :key="workoutType"
+                >
+                  <button
+                    @click="main.selectedWorkoutType = workoutType"
+                    :class="main.selectedWorkoutType === workoutType ? 'ring-2 ring-inset ring-primary bg-primary-container' : 'bg-surface-variant'"
+                    class="w-full p-3 rounded-xl text-left transition-all border border-outline-variant hover:bg-primary-container/50 overflow-hidden"
+                  >
+                    <div class="flex items-center justify-between">
+                      <span class="font-medium" x-text="workoutType"></span>
+                      <span
+                        class="material-icons text-on-surface-variant"
+                        x-show="main.selectedWorkoutType === workoutType"
+                        >check_circle</span
+                      >
+                    </div>
+                  </button>
+                </template>
+              </div>
             </div>
+          </template>
 
-            <!-- Workout Type Selection -->
-            <template x-if="main.selectedMilestone && !main.isBenchmarkMilestone">
-              <div id="workout-selection-exercise" class="space-y-4 mb-6">
-                <h3 class="text-lg font-medium text-on-surface">
-                  Choose Exercise
-                </h3>
-                <div class="space-y-2 max-h-48 overflow-y-auto p-0.5">
-                  <template
-                    x-for="workoutType in main.availableWorkoutTypes"
-                    :key="workoutType"
+          <!-- Benchmark Workout Selection -->
+          <template x-if="main.selectedMilestone && main.isBenchmarkMilestone">
+            <div id="benchmark-selection" class="space-y-4 mb-6">
+              <h3 class="text-lg font-medium text-on-surface">
+                Choose Benchmark Workout
+              </h3>
+              <div class="space-y-2 max-h-48 overflow-y-auto p-0.5">
+                <template
+                  x-for="(benchmark, index) in main.availableBenchmarks"
+                  :key="index"
+                >
+                  <button
+                    @click="main.selectedBenchmarkIndex = index"
+                    :class="main.selectedBenchmarkIndex === index ? 'ring-2 ring-inset ring-primary bg-primary-container' : 'bg-surface-variant'"
+                    class="w-full p-3 rounded-xl text-left transition-all border border-outline-variant hover:bg-primary-container/50 overflow-hidden"
                   >
-                    <button
-                      @click="main.selectedWorkoutType = workoutType"
-                      :class="main.selectedWorkoutType === workoutType ? 'ring-2 ring-primary bg-primary-container' : 'bg-surface-variant'"
-                      class="w-full p-3 rounded-xl text-left transition-all border border-outline-variant hover:bg-primary-container/50"
-                    >
-                      <div class="flex items-center justify-between">
-                        <span class="font-medium" x-text="workoutType"></span>
-                        <span
-                          class="material-icons text-on-surface-variant"
-                          x-show="main.selectedWorkoutType === workoutType"
-                          >check_circle</span
-                        >
-                      </div>
-                    </button>
-                  </template>
-                </div>
+                    <div class="flex items-center justify-between mb-2">
+                      <span
+                        class="font-medium text-lg"
+                        x-text="benchmark.name"
+                      ></span>
+                      <span
+                        class="material-icons text-on-surface-variant"
+                        x-show="main.selectedBenchmarkIndex === index"
+                        >check_circle</span
+                      >
+                    </div>
+                    <div class="text-sm text-on-surface-variant">
+                      <span x-text="benchmark.exercises.length"></span>
+                      exercises
+                      <template x-if="benchmark.timeCapMinutes">
+                        • <span x-text="benchmark.timeCapMinutes"></span> min
+                        time cap
+                      </template>
+                    </div>
+                  </button>
+                </template>
               </div>
-            </template>
+            </div>
+          </template>
 
-            <!-- Benchmark Workout Selection -->
-            <template x-if="main.selectedMilestone && main.isBenchmarkMilestone">
-              <div id="benchmark-selection" class="space-y-4 mb-6">
-                <h3 class="text-lg font-medium text-on-surface">
-                  Choose Benchmark Workout
-                </h3>
-                <div class="space-y-2 max-h-48 overflow-y-auto p-0.5">
-                  <template
-                    x-for="(benchmark, index) in main.availableBenchmarks"
-                    :key="index"
-                  >
-                    <button
-                      @click="main.selectedBenchmarkIndex = index"
-                      :class="main.selectedBenchmarkIndex === index ? 'ring-2 ring-primary bg-primary-container' : 'bg-surface-variant'"
-                      class="w-full p-3 rounded-xl text-left transition-all border border-outline-variant hover:bg-primary-container/50"
-                    >
-                      <div class="flex items-center justify-between mb-2">
-                        <span class="font-medium text-lg" x-text="benchmark.name"></span>
-                        <span
-                          class="material-icons text-on-surface-variant"
-                          x-show="main.selectedBenchmarkIndex === index"
-                          >check_circle</span
-                        >
-                      </div>
-                      <div class="text-sm text-on-surface-variant">
-                        <span x-text="benchmark.exercises.length"></span> exercises
-                        <template x-if="benchmark.timeCapMinutes">
-                          • <span x-text="benchmark.timeCapMinutes"></span> min time cap
-                        </template>
-                      </div>
-                    </button>
-                  </template>
-                </div>
-              </div>
-            </template>
-
-            <!-- Continue Button -->
+          <!-- Continue Button -->
+          <div class="sticky bottom-0 bg-surface pt-4">
             <button
               @click="main.selectWorkout()"
               :disabled="!main.selectedMilestone || (!main.isBenchmarkMilestone && !main.selectedWorkoutType) || (main.isBenchmarkMilestone && main.selectedBenchmarkIndex === null)"
@@ -415,120 +430,151 @@
               Next: Choose Proof Method
             </button>
           </div>
-        </div>
+        </section>
 
-        <!-- Modal: Step 2 - Select Proof Method -->
-        <div
+        <!-- Screen: Select Proof Method (Full Screen) -->
+        <section
           x-show="main.showProofMethodModal"
-          x-transition:enter="transition ease-out duration-200"
-          x-transition:enter-start="opacity-0"
-          x-transition:enter-end="opacity-100"
-          @click.outside="main.cancelProofMethodSelection()"
-          class="fixed inset-0 bg-black/50 z-50 flex items-end"
+          x-transition:enter="transition ease-out duration-300"
+          x-transition:enter-start="opacity-0 translate-x-full"
+          x-transition:enter-end="opacity-100 translate-x-0"
+          x-transition:leave="transition ease-in duration-200"
+          x-transition:leave-start="opacity-100 translate-x-0"
+          x-transition:leave-end="opacity-0 -translate-x-full"
+          class="absolute inset-0 z-20 bg-surface p-6 flex flex-col overflow-y-auto"
         >
-          <div
-            @click.stop
-            x-transition:enter="transition ease-out duration-200"
-            x-transition:enter-start="translate-y-full"
-            x-transition:enter-end="translate-y-0"
-            class="w-full bg-surface rounded-t-3xl p-6"
-          >
-            <!-- Header -->
-            <div class="flex items-center justify-between mb-6">
-              <h2 class="text-2xl font-bold text-on-surface">Proof Method</h2>
-              <button
-                @click="main.cancelProofMethodSelection()"
-                class="p-2 hover:bg-surface-variant rounded-full transition-colors"
-              >
-                <span class="material-icons text-on-surface-variant"
-                  >close</span
-                >
-              </button>
-            </div>
-
-            <!-- Selected Workout Summary -->
-            <div class="bg-primary-container rounded-2xl p-4 mb-6">
-              <p class="text-sm text-on-surface-variant mb-1">
-                Selected Workout
-              </p>
-              <template x-if="!main.isBenchmarkMilestone">
-                <p
-                  class="font-medium text-on-surface"
-                  x-text="main.selectedWorkoutType"
-                ></p>
-              </template>
-              <template x-if="main.isBenchmarkMilestone">
-                <p
-                  class="font-medium text-on-surface"
-                  x-text="main.availableBenchmarks[main.selectedBenchmarkIndex]?.name"
-                ></p>
-              </template>
-              <p
-                class="text-sm text-on-surface-variant"
-                x-text="'towards: ' + main.selectedMilestone"
-              ></p>
-            </div>
-
-            <!-- Error message -->
-            <template x-if="main.errorMessage">
-              <div class="mb-4 p-4 bg-red-100 text-red-800 rounded-lg">
-                <p x-text="main.errorMessage"></p>
-              </div>
-            </template>
-
-            <!-- Proof Method Options -->
-            <div class="space-y-3 mb-6">
-              <button
-                @click="main.selectProofMethodAndSubmit('escrow')"
-                :disabled="main.isLoading"
-                class="w-full px-6 py-4 flex items-center gap-4 hover:bg-surface-variant transition-colors border border-outline-variant rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <span class="material-icons text-primary">handshake</span>
-                <div class="text-left">
-                  <div class="font-medium">Escrow</div>
-                  <div class="text-sm text-on-surface-variant">
-                    Post and notify guarantor
-                  </div>
-                </div>
-              </button>
-              <button
-                @click="main.selectProofMethodAndSubmit('video')"
-                :disabled="main.isLoading"
-                class="w-full px-6 py-4 flex items-center gap-4 hover:bg-surface-variant transition-colors border border-outline-variant rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <span class="material-icons text-primary">videocam</span>
-                <div class="text-left">
-                  <div class="font-medium">Video Proof</div>
-                  <div class="text-sm text-on-surface-variant">
-                    Record your workout
-                  </div>
-                </div>
-              </button>
-              <button
-                @click="main.selectProofMethodAndSubmit('record')"
-                :disabled="main.isLoading"
-                class="w-full px-6 py-4 flex items-center gap-4 hover:bg-surface-variant transition-colors border border-outline-variant rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <span class="material-icons text-primary">emoji_events</span>
-                <div class="text-left">
-                  <div class="font-medium">Off the Record</div>
-                  <div class="text-sm text-on-surface-variant">
-                    Post without proof
-                  </div>
-                </div>
-              </button>
-            </div>
-
-            <!-- Back Button -->
+          <!-- Header -->
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="text-2xl font-bold text-on-surface">Proof Method</h2>
             <button
               @click="main.cancelProofMethodSelection()"
-              :disabled="main.isLoading"
-              class="w-full py-3 text-primary font-medium rounded-2xl hover:bg-surface-variant transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              class="p-2 hover:bg-surface-variant rounded-full transition-colors"
             >
-              Back
+              <span class="material-icons text-on-surface-variant">close</span>
             </button>
           </div>
-        </div>
+
+          <!-- Selected Workout Summary -->
+          <div class="bg-primary-container rounded-2xl p-4 mb-6">
+            <p class="text-sm text-on-surface-variant mb-1">Selected Workout</p>
+            <template x-if="!main.isBenchmarkMilestone">
+              <p
+                class="font-medium text-on-surface"
+                x-text="main.selectedWorkoutType"
+              ></p>
+            </template>
+            <template x-if="main.isBenchmarkMilestone">
+              <p
+                class="font-medium text-on-surface"
+                x-text="main.availableBenchmarks[main.selectedBenchmarkIndex]?.name"
+              ></p>
+            </template>
+            <p
+              class="text-sm text-on-surface-variant"
+              x-text="'towards: ' + main.selectedMilestone"
+            ></p>
+          </div>
+
+          <!-- Error message -->
+          <template x-if="main.errorMessage">
+            <div class="mb-4 p-4 bg-red-100 text-red-800 rounded-lg">
+              <p x-text="main.errorMessage"></p>
+            </div>
+          </template>
+
+          <!-- Proof Method Options -->
+          <div class="space-y-3 mb-6">
+            <button
+              @click="main.selectProofMethodAndSubmit(ProofMethodType.ESCROW)"
+              :disabled="main.isLoading"
+              class="w-full px-6 py-4 flex items-center gap-4 hover:bg-surface-variant transition-colors border border-outline-variant rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span class="material-icons text-primary">handshake</span>
+              <div class="text-left">
+                <div class="font-medium">Escrow</div>
+                <div class="text-sm text-on-surface-variant">
+                  Post and notify guarantor
+                </div>
+              </div>
+            </button>
+            <button
+              @click="main.selectProofMethodAndSubmit(ProofMethodType.VIDEO)"
+              :disabled="main.isLoading"
+              class="w-full px-6 py-4 flex items-center gap-4 hover:bg-surface-variant transition-colors border border-outline-variant rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span class="material-icons text-primary">videocam</span>
+              <div class="text-left">
+                <div class="font-medium">Video Proof</div>
+                <div class="text-sm text-on-surface-variant">
+                  Record your workout
+                </div>
+              </div>
+            </button>
+            <button
+              @click="main.selectProofMethodAndSubmit(ProofMethodType.RECORD)"
+              :disabled="main.isLoading"
+              class="w-full px-6 py-4 flex items-center gap-4 hover:bg-surface-variant transition-colors border border-outline-variant rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span class="material-icons text-primary">emoji_events</span>
+              <div class="text-left">
+                <div class="font-medium">Off the Record</div>
+                <div class="text-sm text-on-surface-variant">
+                  Post without proof
+                </div>
+              </div>
+            </button>
+          </div>
+
+          <!-- Back Button -->
+          <button
+            @click="main.cancelProofMethodSelection()"
+            :disabled="main.isLoading"
+            class="w-full py-3 text-primary font-medium rounded-2xl hover:bg-surface-variant transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Back
+          </button>
+        </section>
+
+        <!-- Tier Level Up Celebration (overlay, not modal) -->
+        <section
+          x-show="main.showLevelUp"
+          x-transition:enter="transition ease-out duration-500"
+          x-transition:enter-start="opacity-0"
+          x-transition:enter-end="opacity-100"
+          x-transition:leave="transition ease-in duration-300"
+          x-transition:leave-start="opacity-100"
+          x-transition:leave-end="opacity-0"
+          @click="main.dismissLevelUp()"
+          class="fixed inset-0 z-40 bg-black/60 flex items-center justify-center p-6"
+        >
+          <div
+            x-transition:enter="transition ease-out duration-500 delay-200"
+            x-transition:enter-start="opacity-0 scale-90"
+            x-transition:enter-end="opacity-100 scale-100"
+            x-transition:leave="transition ease-in duration-200"
+            x-transition:leave-start="opacity-100 scale-100"
+            x-transition:leave-end="opacity-0 scale-90"
+            class="bg-surface rounded-3xl p-8 max-w-sm w-full shadow-xl text-center tier-up-celebration"
+            @click.stop
+          >
+            <div class="text-6xl mb-4 animate-bounce">🎉</div>
+            <h2 class="text-3xl font-bold text-primary mb-2">Level Up!</h2>
+            <p class="text-lg text-on-surface mb-2">Congratulations!</p>
+            <p class="text-on-surface-variant mb-6">
+              You've advanced to
+              <span
+                class="font-bold text-primary"
+                x-text="main.newTierName"
+              ></span>
+            </p>
+            <button
+              @click="main.dismissLevelUp()"
+              class="w-full py-3 bg-primary text-on-primary font-medium rounded-2xl hover:bg-primary/90 transition-colors"
+            >
+              Continue
+            </button>
+          </div>
+        </section>
       </section>
 
       <!-- Screen: Workout History -->
@@ -548,13 +594,16 @@
         >
           <button
             @click="navigateTo('main')"
-            class="p-2 rounded-full hover:bg-surface-variant transition-colors"
+            class="w-10 h-10 inline-flex items-center justify-center rounded-full hover:bg-surface-variant transition-colors"
           >
-            <span class="material-icons text-on-surface-variant"
+            <span
+              class="material-icons text-on-surface-variant text-2xl leading-none"
               >arrow_back</span
             >
           </button>
-          <h1 class="text-xl font-bold text-on-surface">Workout History</h1>
+          <h1 class="text-xl font-bold text-on-surface leading-none">
+            Workout History
+          </h1>
         </div>
 
         <!-- Workout List -->

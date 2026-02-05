@@ -1,5 +1,7 @@
 // Service Worker for Fitness Supreme PWA
-const CACHE_NAME = "f17n355-v4";
+// Cache version controlled by version.json file
+let CACHE_VERSION = "f17n355-0.1.0.0";
+let CACHE_NAME = CACHE_VERSION;
 const STATIC_ASSETS = [
   "/",
   "/index.html",
@@ -31,17 +33,49 @@ const STATIC_ASSETS = [
   "/img/female4.png",
 ];
 
-// Install event - cache static assets
+// Check version file to detect deployments
+async function checkVersion() {
+  try {
+    const response = await fetch("/version.json?t=" + Date.now());
+    if (response.ok) {
+      const data = await response.json();
+      const newVersion = "f17n355-" + data.version;
+      if (newVersion !== CACHE_VERSION) {
+        CACHE_VERSION = newVersion;
+        CACHE_NAME = newVersion;
+        console.log("Cache version updated to:", CACHE_NAME);
+        // Clear old caches when version changes
+        const cacheNames = await caches.keys();
+        await Promise.all(
+          cacheNames.map((name) => {
+            if (name !== CACHE_NAME) {
+              console.log("Deleting old cache:", name);
+              return caches.delete(name);
+            }
+          }),
+        );
+      }
+    }
+  } catch (error) {
+    console.error("Failed to check version:", error);
+  }
+}
+
+// Check version on install
+async function installWithVersionCheck() {
+  await checkVersion();
+  return caches
+    .open(CACHE_NAME)
+    .then((cache) => {
+      console.log("Caching static assets with version:", CACHE_NAME);
+      return cache.addAll(STATIC_ASSETS);
+    })
+    .then(() => self.skipWaiting());
+}
+
+// Install event - cache static assets with version check
 self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches
-      .open(CACHE_NAME)
-      .then((cache) => {
-        console.log("Caching static assets");
-        return cache.addAll(STATIC_ASSETS);
-      })
-      .then(() => self.skipWaiting()),
-  );
+  event.waitUntil(installWithVersionCheck());
 });
 
 // Activate event - clean up old caches
@@ -71,18 +105,34 @@ self.addEventListener("fetch", (event) => {
     event.request.mode === "navigate" ||
     (event.request.headers.get("accept") || "").includes("text/html");
 
-  // Network-first for HTML to ensure fresh app shell on hard refresh
+  // Stale-while-revalidate for HTML - serve cache immediately, update in background
   if (isHtmlRequest) {
     event.respondWith(
-      fetch(event.request)
-        .then((response) => {
-          const responseToCache = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put("/index.html", responseToCache);
-          });
-          return response;
-        })
-        .catch(() => caches.match("/index.html")),
+      (async () => {
+        // Check version before serving
+        await checkVersion();
+
+        const cachedResponse = await caches.match(event.request);
+        const fetchPromise = fetch(event.request)
+          .then((response) => {
+            if (
+              !response ||
+              response.status !== 200 ||
+              response.type !== "basic"
+            ) {
+              return response;
+            }
+            const responseToCache = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseToCache);
+            });
+            return response;
+          })
+          .catch(() => cachedResponse);
+
+        // Return cached response immediately, or wait for network if no cache
+        return cachedResponse || fetchPromise;
+      })(),
     );
     return;
   }

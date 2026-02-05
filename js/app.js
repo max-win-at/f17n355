@@ -25,6 +25,10 @@ import { ProofMethod } from "./models/Workout.js";
 import { MilestoneType } from "./models/Milestone.js";
 import { getAllWorkoutTypes } from "./models/TierConfiguration.js";
 
+// Constants
+import { ScreenType } from "./constants/ScreenType.js";
+import { ProofMethodType } from "./constants/ProofMethodType.js";
+
 // Debug interface
 import { DebugInterface } from "./debug/DebugInterface.js";
 
@@ -105,9 +109,11 @@ const container = new AppContainer();
 function createAppComponent() {
   return {
     // Current screen state
-    currentScreen: "setup",
+    currentScreen: ScreenType.SETUP,
 
-    // Sub-viewmodels
+    // Screen type constants for template
+    ScreenType,
+    ProofMethodType,
     athlete: container.athleteSetupViewModel,
     main: container.mainScreenViewModel,
     history: container.workoutHistoryViewModel,
@@ -157,6 +163,14 @@ function createAppComponent() {
       return this.history.workouts;
     },
 
+    get setupActionLabel() {
+      return this.athlete.isExistingProfile ? "Save Changes" : "Launch";
+    },
+
+    get setupActionIcon() {
+      return this.athlete.isExistingProfile ? "save" : "rocket_launch";
+    },
+
     // Initialization
     async init() {
       container.logger.log("App initializing...");
@@ -172,10 +186,10 @@ function createAppComponent() {
           // Load existing data and go to main screen
           await this.athlete.loadExistingAthlete();
           await this.main.initialize();
-          this.currentScreen = "main";
+          this.currentScreen = ScreenType.MAIN;
         } else {
           // Show setup screen
-          this.currentScreen = "setup";
+          this.currentScreen = ScreenType.SETUP;
         }
 
         container.logger.log("App initialized successfully");
@@ -186,13 +200,18 @@ function createAppComponent() {
 
     // Navigation
     navigateTo(screen) {
+      if (!ScreenType.isValid(screen)) {
+        container.logger.error(`Invalid screen type: ${screen}`);
+        return;
+      }
+
       container.logger.log(`Navigating to: ${screen}`);
 
-      if (screen === "history") {
+      if (screen === ScreenType.HISTORY) {
         this.history.loadWorkouts();
-      } else if (screen === "main") {
+      } else if (screen === ScreenType.MAIN) {
         this.main.refreshProgress();
-      } else if (screen === "setup") {
+      } else if (screen === ScreenType.SETUP) {
         this.athlete.loadExistingAthlete();
       }
 
@@ -204,7 +223,7 @@ function createAppComponent() {
       const success = await this.athlete.saveAthlete();
       if (success) {
         await this.main.initialize();
-        this.currentScreen = "main";
+        this.currentScreen = ScreenType.MAIN;
       }
     },
 
@@ -245,18 +264,87 @@ export function registerAppData(Alpine) {
   container.logger.log("Alpine app component registered");
 }
 
-// Export for debugging/testing
-window.__f17n355 = {
-  container,
-  ProofMethod,
-  MilestoneType,
-  getAllWorkoutTypes,
-};
-
 // Initialize debug interface
 const debugInterface = new DebugInterface(container);
 debugInterface.initialize().catch((error) => {
   container.logger.error("Failed to initialize debug interface", error);
 });
+
+// Service Worker with version tracking for silent updates
+let lastKnownVersion = null;
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    // Register service worker without cache-busting (SW handles cache itself)
+    navigator.serviceWorker
+      .register("/sw.js")
+      .then((reg) => {
+        container.logger.log("Service Worker registered", reg.scope);
+
+        // Check version.json periodically to detect deployments
+        setInterval(async () => {
+          try {
+            const response = await fetch("/version.json?t=" + Date.now());
+            const data = await response.json();
+            const currentVersion = data.version;
+
+            // Only reload if version actually changed
+            if (
+              lastKnownVersion !== null &&
+              lastKnownVersion !== currentVersion
+            ) {
+              container.logger.log(
+                "App version updated from",
+                lastKnownVersion,
+                "to",
+                currentVersion,
+              );
+              // Trigger SW update check
+              reg.update().catch((error) => {
+                container.logger.error(
+                  "Service Worker update check failed",
+                  error,
+                );
+              });
+            }
+            lastKnownVersion = currentVersion;
+          } catch (error) {
+            // Silently ignore errors
+          }
+        }, 30000); // Check every 30 seconds
+
+        // Fetch initial version
+        fetch("/version.json?t=" + Date.now())
+          .then((r) => r.json())
+          .then((data) => {
+            lastKnownVersion = data.version;
+          })
+          .catch(() => {});
+
+        // Listen for new service worker and reload only when version actually changed
+        reg.addEventListener("updatefound", () => {
+          const newWorker = reg.installing;
+          newWorker.addEventListener("statechange", () => {
+            if (
+              newWorker.state === "activated" &&
+              navigator.serviceWorker.controller
+            ) {
+              // New service worker is active
+              // Reload if we detected a version change, otherwise just update silently
+              // (fetch will get new assets from updated cache)
+              if (lastKnownVersion !== null) {
+                container.logger.log(
+                  "New Service Worker activated, content will update on next reload",
+                );
+              }
+            }
+          });
+        });
+      })
+      .catch((err) => {
+        container.logger.error("Service Worker registration failed", err);
+      });
+  });
+}
 
 container.logger.log("App module loaded");

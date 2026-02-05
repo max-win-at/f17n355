@@ -13,6 +13,7 @@ export class AthleteSetupViewModel {
     this.skinTone = "neutral";
     this.isLoading = false;
     this.errorMessage = "";
+    this.isExistingProfile = false;
   }
 
   /**
@@ -60,7 +61,10 @@ export class AthleteSetupViewModel {
         this.birthday = athlete.birthday || "";
         this.gender = athlete.gender || "male";
         this.skinTone = athlete.skinTone || "neutral";
+        this.isExistingProfile = true;
         this._logger.log("Loaded existing athlete profile");
+      } else {
+        this.isExistingProfile = false;
       }
     } catch (error) {
       this._logger.error("Failed to load athlete profile", error);
@@ -83,12 +87,23 @@ export class AthleteSetupViewModel {
     this.errorMessage = "";
 
     try {
-      await this._athleteRepository.createAthlete(
-        this.name.trim(),
-        this.birthday,
-        this.gender,
-        this.skinTone,
-      );
+      const existingAthlete = await this._athleteRepository.getCurrentAthlete();
+      if (existingAthlete) {
+        existingAthlete.name = this.name.trim();
+        existingAthlete.birthday = this.birthday;
+        existingAthlete.gender = this.gender;
+        existingAthlete.skinTone = this.skinTone;
+        await this._athleteRepository.saveAthlete(existingAthlete);
+        this.isExistingProfile = true;
+      } else {
+        await this._athleteRepository.createAthlete(
+          this.name.trim(),
+          this.birthday,
+          this.gender,
+          this.skinTone,
+        );
+        this.isExistingProfile = true;
+      }
       this._logger.log("Athlete profile saved successfully");
       return true;
     } catch (error) {
