@@ -1,5 +1,5 @@
 // Service Worker for Fitness Supreme PWA
-const CACHE_NAME = "f17n355-v3";
+const CACHE_NAME = "f17n355-v4";
 const STATIC_ASSETS = [
   "/",
   "/index.html",
@@ -67,15 +67,31 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  const isHtmlRequest =
+    event.request.mode === "navigate" ||
+    (event.request.headers.get("accept") || "").includes("text/html");
+
+  // Network-first for HTML to ensure fresh app shell on hard refresh
+  if (isHtmlRequest) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          const responseToCache = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put("/index.html", responseToCache);
+          });
+          return response;
+        })
+        .catch(() => caches.match("/index.html")),
+    );
+    return;
+  }
+
+  // Cache-first for other static assets with background update
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-
-      return fetch(event.request)
+      const fetchPromise = fetch(event.request)
         .then((response) => {
-          // Don't cache non-successful responses
           if (
             !response ||
             response.status !== 200 ||
@@ -83,21 +99,15 @@ self.addEventListener("fetch", (event) => {
           ) {
             return response;
           }
-
-          // Clone the response for caching
           const responseToCache = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(event.request, responseToCache);
           });
-
           return response;
         })
-        .catch(() => {
-          // Offline fallback for HTML pages
-          if (event.request.headers.get("accept").includes("text/html")) {
-            return caches.match("/index.html");
-          }
-        });
+        .catch(() => cachedResponse);
+
+      return cachedResponse || fetchPromise;
     }),
   );
 });

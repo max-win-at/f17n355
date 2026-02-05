@@ -41,7 +41,9 @@ export class ProgressionService {
       id: this._progressKey,
       ...this._tierConfig.toJSON(),
     };
-    await this._storageService.putItem(this._progressStoreName, data);
+    // Ensure data is structured-clone safe for IndexedDB
+    const safeData = JSON.parse(JSON.stringify(data));
+    await this._storageService.putItem(this._progressStoreName, safeData);
   }
 
   /**
@@ -124,8 +126,15 @@ export class ProgressionService {
       return { leveledUp: false, maxTierReached: true };
     }
 
+    // Reset progress for next tier
+    const nextTier = this._tierConfig.getTierByLevel(nextTierLevel);
+    if (nextTier) {
+      nextTier.resetProgress();
+    }
+
     // Update athlete's tier
     await this._athleteRepository.updateTier(nextTierLevel);
+    await this.saveProgress();
 
     return {
       leveledUp: true,
@@ -157,6 +166,8 @@ export class ProgressionService {
       tierName: tier.name,
       completedMilestones: tier.completedMilestones,
       totalMilestones: tier.totalMilestones,
+      totalWorkoutsNeeded: tier.getTotalWorkoutsNeeded(),
+      totalWorkoutsCompleted: tier.getTotalWorkoutsCompleted(),
       progressPercent: tier.progressPercent,
       milestones: tier.milestones.map((m) => ({
         type: m.type,

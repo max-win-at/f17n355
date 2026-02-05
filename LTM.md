@@ -95,6 +95,31 @@ Each milestone can specify accepted workout types or accept all (empty array).
 - No changes needed to Tier model (already handles new Milestone structure)
 - All syntax validated with Node.js --check
 
+## 2026-02-05: Tier Progression Changed to Percentage-Based Workout Calculation
+
+### Changes Made
+
+**Tier.js**:
+- Replaced `progressPercent` (milestone count %) with workout-based calculation
+- Added `getTotalWorkoutsNeeded()`: Sums all milestone requirements; benchmarks = 15% of their nominal value (Option C)
+- Added `getTotalWorkoutsCompleted()`: Sums actual progress; benchmark completion counted proportionally
+
+**ProgressionService.js**:
+- Updated `_checkTierLevelUp()` to reset next tier's progress before advancement (progress resets per tier)
+- Updated `getTierProgressSummary()` to return `totalWorkoutsNeeded` and `totalWorkoutsCompleted`
+
+### Formula
+
+$$\text{Tier Progress \%} = \frac{\text{Total Workouts Completed}}{\text{Total Workouts Needed}} \times 100$$
+
+**Example**: Beginner tier (Bronze 5 + Silver 10 + Gold 15 + Platinum 3 + Diamond 5 = 38 total)
+- If athlete completes Bronze (5) + 5 Silver + 1 Platinum benchmark (1/3 × 3 = 1):
+- Progress = 11/38 = 28.9%
+
+**Benchmark Handling (Option C)**:
+- Each benchmark milestone weighted as 15% of its required workout count
+- Partial benchmark completion (e.g., 2/5 benchmarks) = 2/5 × effective workouts
+
 ### Next Steps / Known Issues
 
 - Tailwind CDN warning: Consider PostCSS setup for production

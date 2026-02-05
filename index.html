@@ -242,7 +242,7 @@
               class="flex justify-between text-sm text-on-surface-variant mb-2"
             >
               <span>Tier Progress</span>
-              <span x-text="completedMilestones + '/' + totalMilestones"></span>
+              <span x-text="totalWorkoutsCompleted + '/' + totalWorkoutsNeeded"></span>
             </div>
             <div class="h-3 bg-surface-variant rounded-full overflow-hidden">
               <div
@@ -255,22 +255,171 @@
 
         <!-- Add Workout FAB -->
         <div class="relative z-10 p-6">
-          <div class="relative" x-data="{ showMenu: false }">
-            <!-- Submenu -->
-            <div
-              x-show="showMenu"
-              x-transition:enter="transition ease-out duration-200"
-              x-transition:enter-start="opacity-0 translate-y-4"
-              x-transition:enter-end="opacity-100 translate-y-0"
-              x-transition:leave="transition ease-in duration-150"
-              x-transition:leave-start="opacity-100 translate-y-0"
-              x-transition:leave-end="opacity-0 translate-y-4"
-              @click.outside="showMenu = false"
-              class="absolute bottom-full left-0 right-0 mb-4 bg-surface rounded-2xl shadow-xl border border-outline-variant overflow-hidden"
-            >
+          <button
+            @click="addWorkout()"
+            class="w-full py-4 bg-primary hover:bg-primary/90 rounded-2xl shadow-xl text-on-primary font-bold text-lg flex items-center justify-center gap-2 transition-all duration-200"
+          >
+            <span class="material-icons">add</span>
+            Add Workout
+          </button>
+        </div>
+
+        <!-- Modal: Step 1 - Select Workout -->
+        <div
+          x-show="main.showWorkoutSelectionModal"
+          x-transition:enter="transition ease-out duration-200"
+          x-transition:enter-start="opacity-0"
+          x-transition:enter-end="opacity-100"
+          @click.outside="main.cancelWorkoutSelection()"
+          class="fixed inset-0 bg-black/50 z-50 flex items-end"
+        >
+          <div
+            @click.stop
+            x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="translate-y-full"
+            x-transition:enter-end="translate-y-0"
+            class="w-full bg-surface rounded-t-3xl p-6 max-h-[80vh] overflow-y-auto"
+          >
+            <!-- Header -->
+            <div class="flex items-center justify-between mb-6">
+              <h2 class="text-2xl font-bold text-on-surface">Select Workout</h2>
               <button
-                @click="addWorkout('escrow'); showMenu = false"
-                class="w-full px-6 py-4 flex items-center gap-4 hover:bg-surface-variant transition-colors border-b border-outline-variant"
+                @click="main.cancelWorkoutSelection()"
+                class="p-2 hover:bg-surface-variant rounded-full transition-colors"
+              >
+                <span class="material-icons text-on-surface-variant">close</span>
+              </button>
+            </div>
+
+            <!-- Error message -->
+            <template x-if="main.errorMessage">
+              <div class="mb-4 p-4 bg-red-100 text-red-800 rounded-lg">
+                <p x-text="main.errorMessage"></p>
+              </div>
+            </template>
+
+            <!-- Available Milestones -->
+            <div class="space-y-4 mb-6">
+              <template
+                x-for="milestone in main.getDisplayMilestones()"
+                :key="milestone.type"
+              >
+                <button
+                  @click="main.selectedMilestone = milestone.type; main.updateWorkoutTypes()"
+                  :class="main.selectedMilestone === milestone.type ? 'ring-2 ring-primary bg-primary-container' : 'bg-surface-variant'"
+                  class="w-full p-4 rounded-2xl text-left transition-all border border-outline-variant hover:bg-primary-container/50"
+                >
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                      <span class="text-2xl" x-text="milestone.icon"></span>
+                      <div>
+                        <div class="font-medium text-on-surface" x-text="milestone.name"></div>
+                        <div
+                          class="text-sm text-on-surface-variant"
+                          x-text="milestone.progress + '/' + milestone.required"
+                        ></div>
+                      </div>
+                    </div>
+                    <span
+                      class="material-icons text-on-surface-variant"
+                      x-show="main.selectedMilestone === milestone.type"
+                      >check_circle</span
+                    >
+                  </div>
+                </button>
+              </template>
+            </div>
+
+            <!-- Workout Type Selection -->
+            <template x-if="main.selectedMilestone">
+              <div class="space-y-4 mb-6">
+                <h3 class="text-lg font-medium text-on-surface">Choose Exercise</h3>
+                <div class="space-y-2 max-h-48 overflow-y-auto">
+                  <template
+                    x-for="workoutType in main.availableWorkoutTypes"
+                    :key="workoutType"
+                  >
+                    <button
+                      @click="main.selectedWorkoutType = workoutType"
+                      :class="main.selectedWorkoutType === workoutType ? 'ring-2 ring-primary bg-primary-container' : 'bg-surface-variant'"
+                      class="w-full p-3 rounded-xl text-left transition-all border border-outline-variant hover:bg-primary-container/50"
+                    >
+                      <div class="flex items-center justify-between">
+                        <span class="font-medium" x-text="workoutType"></span>
+                        <span
+                          class="material-icons text-on-surface-variant"
+                          x-show="main.selectedWorkoutType === workoutType"
+                          >check_circle</span
+                        >
+                      </div>
+                    </button>
+                  </template>
+                </div>
+              </div>
+            </template>
+
+            <!-- Continue Button -->
+            <button
+              @click="main.selectWorkout()"
+              :disabled="!main.selectedMilestone || !main.selectedWorkoutType"
+              :class="(!main.selectedMilestone || !main.selectedWorkoutType) ? 'bg-outline-variant text-on-surface-variant cursor-not-allowed' : 'bg-primary text-on-primary hover:bg-primary/90'"
+              class="w-full py-4 rounded-2xl font-bold transition-all"
+            >
+              Next: Choose Proof Method
+            </button>
+          </div>
+        </div>
+
+        <!-- Modal: Step 2 - Select Proof Method -->
+        <div
+          x-show="main.showProofMethodModal"
+          x-transition:enter="transition ease-out duration-200"
+          x-transition:enter-start="opacity-0"
+          x-transition:enter-end="opacity-100"
+          @click.outside="main.cancelProofMethodSelection()"
+          class="fixed inset-0 bg-black/50 z-50 flex items-end"
+        >
+          <div
+            @click.stop
+            x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="translate-y-full"
+            x-transition:enter-end="translate-y-0"
+            class="w-full bg-surface rounded-t-3xl p-6"
+          >
+            <!-- Header -->
+            <div class="flex items-center justify-between mb-6">
+              <h2 class="text-2xl font-bold text-on-surface">Proof Method</h2>
+              <button
+                @click="main.cancelProofMethodSelection()"
+                class="p-2 hover:bg-surface-variant rounded-full transition-colors"
+              >
+                <span class="material-icons text-on-surface-variant">close</span>
+              </button>
+            </div>
+
+            <!-- Selected Workout Summary -->
+            <div class="bg-primary-container rounded-2xl p-4 mb-6">
+              <p class="text-sm text-on-surface-variant mb-1">Selected Workout</p>
+              <p class="font-medium text-on-surface" x-text="main.selectedWorkoutType"></p>
+              <p
+                class="text-sm text-on-surface-variant"
+                x-text="'towards: ' + main.selectedMilestone"
+              ></p>
+            </div>
+
+            <!-- Error message -->
+            <template x-if="main.errorMessage">
+              <div class="mb-4 p-4 bg-red-100 text-red-800 rounded-lg">
+                <p x-text="main.errorMessage"></p>
+              </div>
+            </template>
+
+            <!-- Proof Method Options -->
+            <div class="space-y-3 mb-6">
+              <button
+                @click="main.selectProofMethodAndSubmit('escrow')"
+                :disabled="main.isLoading"
+                class="w-full px-6 py-4 flex items-center gap-4 hover:bg-surface-variant transition-colors border border-outline-variant rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <span class="material-icons text-primary">handshake</span>
                 <div class="text-left">
@@ -281,8 +430,9 @@
                 </div>
               </button>
               <button
-                @click="addWorkout('video'); showMenu = false"
-                class="w-full px-6 py-4 flex items-center gap-4 hover:bg-surface-variant transition-colors border-b border-outline-variant"
+                @click="main.selectProofMethodAndSubmit('video')"
+                :disabled="main.isLoading"
+                class="w-full px-6 py-4 flex items-center gap-4 hover:bg-surface-variant transition-colors border border-outline-variant rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <span class="material-icons text-primary">videocam</span>
                 <div class="text-left">
@@ -293,8 +443,9 @@
                 </div>
               </button>
               <button
-                @click="addWorkout('record'); showMenu = false"
-                class="w-full px-6 py-4 flex items-center gap-4 hover:bg-surface-variant transition-colors"
+                @click="main.selectProofMethodAndSubmit('record')"
+                :disabled="main.isLoading"
+                class="w-full px-6 py-4 flex items-center gap-4 hover:bg-surface-variant transition-colors border border-outline-variant rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <span class="material-icons text-primary">emoji_events</span>
                 <div class="text-left">
@@ -306,18 +457,13 @@
               </button>
             </div>
 
-            <!-- FAB Button -->
+            <!-- Back Button -->
             <button
-              @click="showMenu = !showMenu"
-              class="w-full py-4 bg-primary hover:bg-primary/90 rounded-2xl shadow-xl text-on-primary font-bold text-lg flex items-center justify-center gap-2 transition-all duration-200"
+              @click="main.cancelProofMethodSelection()"
+              :disabled="main.isLoading"
+              class="w-full py-3 text-primary font-medium rounded-2xl hover:bg-surface-variant transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <span
-                class="material-icons"
-                :class="showMenu ? 'rotate-45' : ''"
-                style="transition: transform 0.2s"
-                >add</span
-              >
-              Add Workout
+              Back
             </button>
           </div>
         </div>

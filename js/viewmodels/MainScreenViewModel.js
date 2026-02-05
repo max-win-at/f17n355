@@ -25,17 +25,23 @@ export class MainScreenViewModel {
     this.completedMilestones = 0;
     this.totalMilestones = 0;
     this.tierProgressPercent = 0;
+    this.totalWorkoutsCompleted = 0;
+    this.totalWorkoutsNeeded = 0;
     this.isLoading = false;
     this.errorMessage = "";
     this.successMessage = "";
 
-    // Workout adding state
-    this.showWorkoutForm = false;
-    this.selectedProofMethod = "";
-    this.selectedWorkoutType = "";
-    this.selectedMilestone = "";
-    this.availableWorkoutTypes = [];
+    // Workout adding state - step 1: select workout
+    this.showWorkoutSelectionModal = false;
     this.availableMilestones = [];
+    this.groupedMilestones = {}; // { 'early': [...], 'late': [...] }
+    this.selectedMilestone = "";
+    this.selectedWorkoutType = "";
+    this.availableWorkoutTypes = [];
+
+    // Workout adding state - step 2: select proof method
+    this.showProofMethodModal = false;
+    this.selectedProofMethod = "";
 
     // Level up celebration state
     this.showLevelUp = false;
@@ -93,6 +99,8 @@ export class MainScreenViewModel {
       this.completedMilestones = summary.completedMilestones;
       this.totalMilestones = summary.totalMilestones;
       this.tierProgressPercent = summary.progressPercent;
+      this.totalWorkoutsCompleted = summary.totalWorkoutsCompleted || 0;
+      this.totalWorkoutsNeeded = summary.totalWorkoutsNeeded || 0;
       this.milestones = summary.milestones;
     } catch (error) {
       this._logger.error("Failed to refresh progress", error);
@@ -100,15 +108,49 @@ export class MainScreenViewModel {
   }
 
   /**
-   * Load available milestones for workout form
+   * Load available milestones for workout form, grouped by priority
    */
   async loadAvailableMilestones() {
-    this.availableMilestones =
+    const allMilestones =
       await this._progressionService.getAvailableMilestones();
-    if (this.availableMilestones.length > 0 && !this.selectedMilestone) {
-      this.selectedMilestone = this.availableMilestones[0].type;
-      this.updateWorkoutTypes();
+    
+    // Group milestones into early (bronze, silver, gold) and late (platinum, diamond)
+    const early = [];
+    const late = [];
+    
+    for (const milestone of allMilestones) {
+      if (['bronze', 'silver', 'gold'].includes(milestone.type)) {
+        early.push(milestone);
+      } else {
+        late.push(milestone);
+      }
     }
+    
+    this.availableMilestones = allMilestones;
+    this.groupedMilestones = {
+      early: early,
+      late: late
+    };
+  }
+
+  /**
+   * Check if all early milestones (bronze, silver, gold) are completed
+   */
+  areEarlyMilestonesCompleted() {
+    const early = this.groupedMilestones.early || [];
+    return early.length > 0 && early.every((m) => m.completed);
+  }
+
+  /**
+   * Get milestones to display in selection modal
+   */
+  getDisplayMilestones() {
+    if (this.areEarlyMilestonesCompleted()) {
+      // Show late milestones if early ones are done
+      return this.groupedMilestones.late || [];
+    }
+    // Otherwise show early milestones
+    return this.groupedMilestones.early || [];
   }
 
   /**
@@ -130,33 +172,62 @@ export class MainScreenViewModel {
   }
 
   /**
-   * Start adding a workout with specific proof method
+   * Step 1: Start adding a workout - show workout selection modal
    */
-  startAddWorkout(proofMethod) {
-    this.selectedProofMethod = proofMethod;
-    this.showWorkoutForm = true;
-    this.updateWorkoutTypes();
-    this._logger.log(`Starting workout add flow with proof: ${proofMethod}`);
+  startAddWorkout() {
+    this.showWorkoutSelectionModal = true;
+    this.selectedMilestone = "";
+    this.selectedWorkoutType = "";
+    this.errorMessage = "";
+    this._logger.log("Starting Add Workout flow - workout selection");
   }
 
   /**
-   * Cancel workout form
+   * Select a workout and milestone, move to proof method selection
    */
-  cancelAddWorkout() {
-    this.showWorkoutForm = false;
+  selectWorkout() {
+    if (!this.selectedMilestone || !this.selectedWorkoutType) {
+      this.errorMessage = "Please select both milestone and workout type";
+      return;
+    }
+    
+    this.showWorkoutSelectionModal = false;
+    this.showProofMethodModal = true;
+    this.errorMessage = "";
+    this._logger.log(
+      `Workout selected: ${this.selectedWorkoutType} for ${this.selectedMilestone}`
+    );
+  }
+
+  /**
+   * Cancel workout selection modal
+   */
+  cancelWorkoutSelection() {
+    this.showWorkoutSelectionModal = false;
+    this.selectedMilestone = "";
+    this.selectedWorkoutType = "";
+    this.errorMessage = "";
+  }
+
+  /**
+   * Cancel proof method selection modal
+   */
+  cancelProofMethodSelection() {
+    this.showProofMethodModal = false;
     this.selectedProofMethod = "";
     this.errorMessage = "";
   }
 
   /**
-   * Submit workout
+   * Step 2: Select proof method and submit workout
    */
-  async submitWorkout() {
+  async selectProofMethodAndSubmit(proofMethod) {
     if (!this.selectedWorkoutType || !this.selectedMilestone) {
       this.errorMessage = "Please select workout type and milestone";
       return;
     }
 
+    this.selectedProofMethod = proofMethod;
     this.isLoading = true;
     this.errorMessage = "";
     this.successMessage = "";
@@ -202,9 +273,12 @@ export class MainScreenViewModel {
       await this.refreshProgress();
       await this.loadAvailableMilestones();
 
-      // Close form on success
+      // Close modals on success
       if (result.success) {
-        this.showWorkoutForm = false;
+        this.showProofMethodModal = false;
+        this.selectedProofMethod = "";
+        this.selectedMilestone = "";
+        this.selectedWorkoutType = "";
       }
 
       this._logger.log("Workout submitted successfully", workout);

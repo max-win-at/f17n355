@@ -44,11 +44,46 @@ export class Tier {
   }
 
   /**
-   * Get tier completion percentage
+   * Get tier completion percentage (based on total workouts, not milestone count)
    */
   get progressPercent() {
-    if (this._milestones.length === 0) return 0;
-    return (this.completedMilestones / this.totalMilestones) * 100;
+    const totalWorkoutsNeeded = this.getTotalWorkoutsNeeded();
+    if (totalWorkoutsNeeded === 0) return 0;
+    const totalWorkoutsCompleted = this.getTotalWorkoutsCompleted();
+    return Math.min(100, (totalWorkoutsCompleted / totalWorkoutsNeeded) * 100);
+  }
+
+  /**
+   * Get total workouts needed for all milestones in this tier
+   */
+  getTotalWorkoutsNeeded() {
+    return this._milestones.reduce((sum, milestone) => {
+      if (milestone.usesBenchmarks) {
+        // Option C: Benchmarks count as fixed percentage of tier
+        // Each benchmark milestone counts as 15% of its nominal required workouts
+        return sum + Math.ceil(milestone.requiredWorkouts * 0.15);
+      }
+      return sum + milestone.requiredWorkouts;
+    }, 0);
+  }
+
+  /**
+   * Get total workouts completed across all milestones in this tier
+   */
+  getTotalWorkoutsCompleted() {
+    return this._milestones.reduce((sum, milestone) => {
+      if (milestone.usesBenchmarks) {
+        // Option C: Each completed benchmark counts proportionally
+        const benchmarkValue = Math.ceil(milestone.requiredWorkouts * 0.15);
+        return (
+          sum +
+          (milestone.benchmarksCompleted.length /
+            milestone.benchmarkWorkouts.length) *
+            benchmarkValue
+        );
+      }
+      return sum + milestone.progress;
+    }, 0);
   }
 
   /**

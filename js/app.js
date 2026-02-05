@@ -138,6 +138,14 @@ function createAppComponent() {
       return this.main.totalMilestones;
     },
 
+    get totalWorkoutsCompleted() {
+      return this.main.totalWorkoutsCompleted;
+    },
+
+    get totalWorkoutsNeeded() {
+      return this.main.totalWorkoutsNeeded;
+    },
+
     get tierProgressPercent() {
       return this.main.tierProgressPercent;
     },
@@ -197,9 +205,9 @@ function createAppComponent() {
       }
     },
 
-    // Add workout (from main screen)
-    addWorkout(proofMethod) {
-      this.main.startAddWorkout(proofMethod);
+    // Add workout (from main screen) - Step 1: select workout
+    addWorkout() {
+      this.main.startAddWorkout();
     },
 
     // Get milestone class for styling
