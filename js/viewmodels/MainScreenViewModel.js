@@ -355,7 +355,9 @@ export class MainScreenViewModel {
 
       if (result.success) {
         // Get the milestone element to animate from
-        const milestoneElement = this._findMilestoneElement(this.selectedMilestone);
+        const milestoneElement = this._findMilestoneElement(
+          this.selectedMilestone,
+        );
 
         if (this.isBenchmarkMilestone) {
           this.successMessage = `Benchmark completed! ${result.milestoneProgress.name}: ${result.milestoneProgress.progress}/${result.milestoneProgress.required} benchmarks`;

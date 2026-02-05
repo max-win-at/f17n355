@@ -315,7 +315,8 @@ button:active:not(:disabled) {
   }
   100% {
     opacity: 0;
-    transform: scale(0.5) translateX(calc(var(--tx) * 1.5)) translateY(calc(var(--ty) * 1.5));
+    transform: scale(0.5) translateX(calc(var(--tx) * 1.5))
+      translateY(calc(var(--ty) * 1.5));
   }
 }
 
