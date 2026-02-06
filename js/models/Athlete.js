@@ -33,7 +33,7 @@ export class Athlete {
    */
   getAvatarPath(tier) {
     const tierLevel = tier ?? this.currentTier;
-    return `img/${this.avatarSet}${tierLevel}.png`;
+    return `img/${this.avatarSet}${tierLevel}.jpg`;
   }
 
   /**

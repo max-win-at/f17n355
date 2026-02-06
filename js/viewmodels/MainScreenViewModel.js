@@ -74,7 +74,7 @@ export class MainScreenViewModel {
    */
   get avatarImagePath() {
     if (!this.athlete) {
-      return "img/male0.png";
+      return "img/male0.jpg";
     }
     return this.athlete.getAvatarPath(this.currentTier);
   }
