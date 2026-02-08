@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FFI Ecosystem Development - Milestone Plan</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.0.4/dist/reset.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.0.4/dist/reveal.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.0.4/dist/theme/white.css">
+    <style>
+        /* Custom MAKAMA-inspired theme */
+        :root {
+            --background-color: #ffffff;
+            --text-color: #1a1a1a;
+            --accent-color: #000000;
+            --subtle-accent: #666666;
+        }
+
+        .reveal {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            color: var(--text-color);
+            background-color: var(--background-color);
+        }
+
+        .reveal h1, .reveal h2, .reveal h3 {
+            text-transform: none;
+            font-weight: 700;
+            color: var(--accent-color);
+            letter-spacing: -0.02em;
+        }
+
+        .reveal h1 {
+            font-size: 2.2em;
+            margin-bottom: 0.3em;
+        }
+
+        .reveal h2 {
+            font-size: 1.6em;
+            margin-bottom: 0.4em;
+        }
+
+        .reveal h3 {
+            font-size: 1em;
+            font-weight: 600;
+            color: var(--subtle-accent);
+        }
+
+        .reveal .slides {
+            height: 100% !important;
+        }
+
+        .reveal .slides section {
+            height: 100% !important;
+            padding: 50px 60px !important;
+            box-sizing: border-box !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: center !important;
+        }
+
+        .reveal section img {
+            border: none;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            background: none;
+            max-height: 60vh;
+        }
+
+        .reveal .single-image-slide img {
+            margin-bottom: 40px !important;
+        }
+
+        .reveal .cost-table {
+            font-size: 0.7em;
+            margin: 20px auto;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        .reveal .cost-table td, .reveal .cost-table th {
+            padding: 10px 15px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .reveal .cost-table th {
+            font-weight: 600;
+            border-bottom: 2px solid var(--accent-color);
+        }
+
+        .reveal .highlight {
+            color: var(--accent-color);
+            font-weight: 600;
+        }
+
+        .reveal ul {
+            font-size: 0.75em;
+            line-height: 1.5;
+        }
+
+        .reveal li {
+            margin-bottom: 0.3em;
+        }
+
+        .reveal .small-text {
+            font-size: 0.6em;
+            color: var(--subtle-accent);
+        }
+
+        .reveal strong {
+            font-weight: 600;
+            color: var(--accent-color);
+        }
+
+        .reveal blockquote {
+            background: #f8f8f8;
+            border-left: 4px solid var(--accent-color);
+            margin: 1.5em 0;
+            padding: 1em 1.5em;
+            font-style: normal;
+        }
+
+        .reveal table {
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        .reveal table th {
+            background-color: #f8f8f8;
+        }
+
+        .reveal table tr:hover {
+            background-color: #fafafa;
+        }
+
+        /* Progress bar */
+        .reveal .progress {
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .reveal .progress span {
+            background: var(--accent-color);
+        }
+
+        /* Controls */
+        .reveal .controls {
+            color: var(--accent-color);
+        }
+
+        /* Slide number */
+        .reveal .slide-number {
+            color: var(--accent-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+
+            <!-- Slide 1: Title -->
+            <section>
+                <h1>FFI Ecosystem Development</h1>
+                <h3>Milestone Plan & Strategy</h3>
+                <p style="margin-top: 50px; font-size: 0.8em;">
+                    <strong>Functional Fitness Index</strong><br>
+                    "Validierte Leistung als Währung"
+                </p>
+            </section>
+
+            <!-- Slide 2: Milestone Overview -->
+            <section class="single-image-slide">
+                <h2>Milestone Übersicht</h2>
+                <img src="milestones.jpg" alt="Milestone Übersicht">
+            </section>
+
+            <!-- Strategic Approach (moved here) -->
+            <section>
+                <h2>Strategischer Ansatz</h2>
+                <div style="text-align: left; font-size: 0.75em; max-width: 850px; margin: 0 auto;">
+                    <blockquote>
+                        <p style="font-size: 1.1em; font-weight: 600;">"Trust-First, Scale-Later"</p>
+                    </blockquote>
+
+                    <ul style="margin-top: 25px;">
+                        <li style="margin-bottom: 12px;">
+                            <strong>Phase 1 (M1-M3):</strong> Vertrauenswürdigkeit durch manuelle Validierung + emotionale Bindung durch Gamification
+                        </li>
+                        <li style="margin-bottom: 12px;">
+                            <strong>Phase 2 (M4):</strong> Massive Skalierung durch AI und Automatisierung
+                        </li>
+                        <li style="margin-bottom: 12px;">
+                            <strong>Phase 3 (M5):</strong> B2B Monetarisierung und Ökosystem-Lock-in
+                        </li>
+                    </ul>
+
+                    <div style="margin-top: 35px; text-align: center; padding: 18px; background: #f8f8f8;">
+                        <p style="font-size: 0.9em; font-weight: 600; margin-bottom: 6px;">Kern-Philosophie</p>
+                        <p style="font-size: 1.2em; font-weight: 700;">"Validierte Leistung als Währung"</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 3: Milestone 1 -->
+            <section>
+                <h2>Milestone 1: Foundation, Math & Identity</h2>
+                <div style="display: flex; gap: 20px; align-items: center;">
+                    <div style="flex: 1;">
+                        <img src="m1.jpg" alt="Milestone 1" style="max-height: 60vh;">
+                    </div>
+                    <div style="flex: 1; text-align: left;">
+                        <p><strong>Ziel:</strong> Die Blaupause</p>
+                        <ul class="small-text">
+                            <li>FFI Scoring Engine (PoC & Simulation)</li>
+                            <li>Brand & Avatar Design ("The Soul")</li>
+                            <li>Trust Protocol Definition</li>
+                            <li>Tech Stack Decision</li>
+                        </ul>
+                        <table class="cost-table">
+                            <tr>
+                                <th>Szenario</th>
+                                <th>Dauer</th>
+                                <th>Kosten</th>
+                            </tr>
+                            <tr>
+                                <td>Best Case</td>
+                                <td>2 Mo</td>
+                                <td>55k €</td>
+                            </tr>
+                            <tr class="highlight">
+                                <td><strong>Average</strong></td>
+                                <td><strong>3 Mo</strong></td>
+                                <td><strong>85k €</strong></td>
+                            </tr>
+                            <tr>
+                                <td>Worst Case</td>
+                                <td>4-5 Mo</td>
+                                <td>120k €</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 4: Milestone 2 -->
+            <section>
+                <h2>Milestone 2: Core Engine & Trust Tooling</h2>
+                <div style="display: flex; gap: 20px; align-items: center;">
+                    <div style="flex: 1;">
+                        <img src="m2.jpg" alt="Milestone 2" style="max-height: 60vh;">
+                    </div>
+                    <div style="flex: 1; text-align: left;">
+                        <p><strong>Ziel:</strong> Alpha - Funktionierendes Rückgrat</p>
+                        <ul class="small-text">
+                            <li>Backend API & Datenbank</li>
+                            <li>Trust Tooling (In-App Kamera, Upload)</li>
+                            <li>Admin Interface (Judge Tool)</li>
+                            <li>Basic App (The "Shell")</li>
+                        </ul>
+                        <table class="cost-table">
+                            <tr>
+                                <th>Szenario</th>
+                                <th>Dauer</th>
+                                <th>Kosten</th>
+                            </tr>
+                            <tr>
+                                <td>Best Case</td>
+                                <td>3 Mo</td>
+                                <td>120k €</td>
+                            </tr>
+                            <tr class="highlight">
+                                <td><strong>Average</strong></td>
+                                <td><strong>4 Mo</strong></td>
+                                <td><strong>180k €</strong></td>
+                            </tr>
+                            <tr>
+                                <td>Worst Case</td>
+                                <td>6 Mo</td>
+                                <td>250k €</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 5: Milestone 3 -->
+            <section>
+                <h2>Milestone 3: The Gamified Experience</h2>
+                <div style="display: flex; gap: 20px; align-items: center;">
+                    <div style="flex: 1;">
+                        <img src="m3.jpg" alt="Milestone 3" style="max-height: 60vh;">
+                    </div>
+                    <div style="flex: 1; text-align: left;">
+                        <p><strong>Ziel:</strong> Public Beta / MVP Launch</p>
+                        <ul class="small-text">
+                            <li>Avatar Integration & "Digital Gym"</li>
+                            <li>Interlocking Gates UI (Skill Tree)</li>
+                            <li>Credit System & Payment</li>
+                            <li>Integration Health APIs</li>
+                            <li>Onboarding & "Assessment Day"</li>
+                        </ul>
+                        <table class="cost-table">
+                            <tr>
+                                <th>Szenario</th>
+                                <th>Dauer</th>
+                                <th>Kosten</th>
+                            </tr>
+                            <tr>
+                                <td>Best Case</td>
+                                <td>3 Mo</td>
+                                <td>150k €</td>
+                            </tr>
+                            <tr class="highlight">
+                                <td><strong>Average</strong></td>
+                                <td><strong>5 Mo</strong></td>
+                                <td><strong>220k €</strong></td>
+                            </tr>
+                            <tr>
+                                <td>Worst Case</td>
+                                <td>7 Mo</td>
+                                <td>300k €</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 6: Milestone 4 -->
+            <section>
+                <h2>Milestone 4: AI Scaling & Automation</h2>
+                <div style="display: flex; gap: 20px; align-items: center;">
+                    <div style="flex: 1;">
+                        <img src="m4.jpg" alt="Milestone 4" style="max-height: 60vh;">
+                    </div>
+                    <div style="flex: 1; text-align: left;">
+                        <p><strong>Ziel:</strong> Kostenreduktion & Skalierbarkeit</p>
+                        <ul class="small-text">
+                            <li>AI Pre-Screening (Computer Vision)</li>
+                            <li>Auto-Fail Detection</li>
+                            <li>Smart Feed & Community AI</li>
+                            <li>API für Smart Equipment</li>
+                        </ul>
+                        <table class="cost-table">
+                            <tr>
+                                <th>Szenario</th>
+                                <th>Dauer</th>
+                                <th>Kosten</th>
+                            </tr>
+                            <tr>
+                                <td>Best Case</td>
+                                <td>4 Mo</td>
+                                <td>160k €</td>
+                            </tr>
+                            <tr class="highlight">
+                                <td><strong>Average</strong></td>
+                                <td><strong>6 Mo</strong></td>
+                                <td><strong>280k €</strong></td>
+                            </tr>
+                            <tr>
+                                <td>Worst Case</td>
+                                <td>9 Mo</td>
+                                <td>450k €</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 7: Milestone 5 -->
+            <section>
+                <h2>Milestone 5: The Professional Layer</h2>
+                <div style="display: flex; gap: 20px; align-items: center;">
+                    <div style="flex: 1;">
+                        <img src="m5.jpg" alt="Milestone 5" style="max-height: 60vh;">
+                    </div>
+                    <div style="flex: 1; text-align: left;">
+                        <p><strong>Ziel:</strong> B2B Expansion</p>
+                        <ul class="small-text">
+                            <li>Organizer Dashboard</li>
+                            <li>Certificate Engine</li>
+                            <li>Gym Management Integration</li>
+                            <li>Campaign Tooling</li>
+                        </ul>
+                        <table class="cost-table">
+                            <tr>
+                                <th>Szenario</th>
+                                <th>Dauer</th>
+                                <th>Kosten</th>
+                            </tr>
+                            <tr>
+                                <td>Best Case</td>
+                                <td>3 Mo</td>
+                                <td>100k €</td>
+                            </tr>
+                            <tr class="highlight">
+                                <td><strong>Average</strong></td>
+                                <td><strong>5 Mo</strong></td>
+                                <td><strong>180k €</strong></td>
+                            </tr>
+                            <tr>
+                                <td>Worst Case</td>
+                                <td>8 Mo</td>
+                                <td>250k €</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 8: Exit & Fail Scenarios -->
+            <section class="single-image-slide">
+                <h2>Exit & Fail Szenarien</h2>
+                <img src="exit.jpg" alt="Exit Szenarien">
+            </section>
+
+            <!-- Slide 9: Cost Summary -->
+            <section>
+                <h2 style="margin-bottom: 15px;">Kostenzusammenfassung</h2>
+                <h3 class="small-text" style="margin-bottom: 20px;">MVP bis Market Fit (Milestone 1-3)</h3>
+
+                <div style="display: flex; gap: 40px; align-items: center;">
+                    <!-- Left Column: Table -->
+                    <div style="flex: 1;">
+                        <table style="margin: 0 auto; font-size: 0.75em;">
+                            <thead>
+                                <tr>
+                                    <th style="padding: 10px 20px;">Szenario</th>
+                                    <th style="padding: 10px 20px;">Dauer</th>
+                                    <th style="padding: 10px 20px;">Kosten</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td style="padding: 8px 20px;"><strong>Best Case</strong></td>
+                                    <td style="padding: 8px 20px;">8 Monate</td>
+                                    <td style="padding: 8px 20px;">325.000 €</td>
+                                </tr>
+                                <tr style="background-color: #f0f0f0;">
+                                    <td style="padding: 8px 20px;"><strong>Average Case</strong></td>
+                                    <td style="padding: 8px 20px;"><strong>12 Monate</strong></td>
+                                    <td style="padding: 8px 20px;"><strong>485.000 €</strong></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 8px 20px;"><strong>Worst Case</strong></td>
+                                    <td style="padding: 8px 20px;">18 Monate</td>
+                                    <td style="padding: 8px 20px;">670.000 €</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Right Column: Notes -->
+                    <div style="flex: 1; font-size: 0.6em; text-align: left;">
+                        <p style="margin-bottom: 10px;"><strong>Hinweis:</strong> Dies sind reine Entwicklungskosten (Personal/Agentur).</p>
+                        <p style="margin-bottom: 15px;">Nicht enthalten: Marketing, Serverkosten (Cloud, Video-Hosting, CDN), Legal/Gründungskosten</p>
+                        <p><strong>Empfohlenes Budget:</strong> Average Case (~485k €) + 30% Puffer für unvorhergesehene Kosten</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 10: Plausibility -->
+            <section>
+                <h2>Plausibilität & Machbarkeit</h2>
+                <h3 style="margin-bottom: 25px;">Vier Säulen der Startup-Machbarkeit</h3>
+
+                <div style="display: flex; gap: 40px; text-align: left; font-size: 0.62em;">
+                    <!-- Left Column -->
+                    <div style="flex: 1;">
+                        <div style="margin-bottom: 22px;">
+                            <p style="font-weight: 600; margin-bottom: 6px;">1. Der "Lego-Ansatz" (Buy > Build)</p>
+                            <ul style="font-size: 0.95em; margin-left: 0; list-style-position: inside;">
+                                <li>Managed Services statt Eigenentwicklung</li>
+                                <li>PaaS reduziert Entwicklung von Monaten auf Tage</li>
+                            </ul>
+                        </div>
+
+                        <div style="margin-bottom: 22px;">
+                            <p style="font-weight: 600; margin-bottom: 6px;">2. Der "Greenfield"-Vorteil</p>
+                            <ul style="font-size: 0.95em; margin-left: 0; list-style-position: inside;">
+                                <li>Keine Legacy-Systeme, keine langen Abstimmungen</li>
+                                <li>Volle Autonomie bei technischen Entscheidungen</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Right Column -->
+                    <div style="flex: 1;">
+                        <div style="margin-bottom: 22px;">
+                            <p style="font-weight: 600; margin-bottom: 6px;">3. MVP-Qualität ("Good Enough for Now")</p>
+                            <ul style="font-size: 0.95em; margin-left: 0; list-style-position: inside;">
+                                <li>Fokus auf Validation, nicht auf Skalierung</li>
+                                <li>Bewusste technische Schulden</li>
+                                <li>Manuelle Prozesse wo AI später automatisiert</li>
+                            </ul>
+                        </div>
+
+                        <div style="margin-bottom: 22px;">
+                            <p style="font-weight: 600; margin-bottom: 6px;">4. Team-Effizienz im "Wartime Mode"</p>
+                            <ul style="font-size: 0.95em; margin-left: 0; list-style-position: inside;">
+                                <li>Senior Full-Stack Profile</li>
+                                <li>Ressourcen-Rotation je nach Projektphase</li>
+                                <li>Direkte Kommunikation, minimaler Overhead</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <p style="margin-top: 30px; font-style: italic; font-size: 0.7em; text-align: center; padding: 15px; background: #f8f8f8;">
+                    <strong>Fazit:</strong> Die Kalkulation ist unter Startup-Bedingungen realistisch und technologisch begründbar.
+                </p>
+            </section>
+
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.0.4/dist/reveal.js"></script>
+    <script>
+        Reveal.initialize({
+            hash: true,
+            transition: 'slide',
+            controls: true,
+            progress: true,
+            center: true,
+            slideNumber: true,
+            width: 1280,
+            height: 720,
+            margin: 0.1,
+            minScale: 0.2,
+            maxScale: 2.0
+        });
+    </script>
+</body>
+</html>
